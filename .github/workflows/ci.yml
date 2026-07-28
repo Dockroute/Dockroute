@@ -45,6 +45,7 @@ jobs:
     name: Docker build & scan
     runs-on: ubuntu-latest
     permissions:
+      actions: read
       contents: read
       security-events: write
     steps:
@@ -63,7 +64,7 @@ jobs:
           cache-to: type=gha,mode=max
 
       - name: Scan image with Trivy
-        uses: aquasecurity/trivy-action@0.28.0
+        uses: aquasecurity/trivy-action@v0.36.0
         with:
           image-ref: dockroute:ci
           format: sarif
@@ -79,7 +80,7 @@ jobs:
           category: trivy-image
 
       - name: Fail on fixable CRITICAL/HIGH vulnerabilities
-        uses: aquasecurity/trivy-action@0.28.0
+        uses: aquasecurity/trivy-action@v0.36.0
         with:
           image-ref: dockroute:ci
           format: table
