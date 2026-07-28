@@ -1,6 +1,8 @@
 # dockroute
 
 [![CI](https://github.com/Dockroute/Dockroute/actions/workflows/ci.yml/badge.svg)](https://github.com/Dockroute/Dockroute/actions/workflows/ci.yml)
+[![CodeQL](https://github.com/Dockroute/Dockroute/actions/workflows/codeql.yml/badge.svg)](https://github.com/Dockroute/Dockroute/actions/workflows/codeql.yml)
+[![codecov](https://codecov.io/gh/Dockroute/Dockroute/branch/main/graph/badge.svg)](https://codecov.io/gh/Dockroute/Dockroute)
 [![Release](https://img.shields.io/github/v/release/Dockroute/Dockroute?include_prereleases)](https://github.com/Dockroute/Dockroute/releases)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
