@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import type { CfIngressRule } from "./api";
-import { mergeIngress, type MergeIngressInput } from "./tunnel";
+import { type MergeIngressInput, mergeIngress } from "./tunnel";
 
 const CATCH_ALL: CfIngressRule = { service: "http_status:404" };
 
@@ -71,7 +71,11 @@ describe("mergeIngress", () => {
   test("preserves extra settings when updating a managed rule", () => {
     const result = merge({
       current: [
-        { hostname: "a.example.com", service: "http://old:80", originRequest: { noTLSVerify: true } },
+        {
+          hostname: "a.example.com",
+          service: "http://old:80",
+          originRequest: { noTLSVerify: true },
+        },
         CATCH_ALL,
       ],
       desired: [{ hostname: "a.example.com", service: "http://new:80" }],

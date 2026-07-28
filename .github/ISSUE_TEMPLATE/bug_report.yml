@@ -1,0 +1,41 @@
+name: Bug report
+description: Something misbehaved — a record wrongly created/deleted, a crash, a conflict not detected
+labels: [bug]
+body:
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: What did you expect, and what happened instead?
+    validations:
+      required: true
+
+  - type: textarea
+    id: labels-config
+    attributes:
+      label: Container labels and DockRoute configuration
+      description: The dockroute.* labels involved and relevant env vars (NEVER paste your API token).
+      render: yaml
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs
+      description: Relevant dockroute output (the `[reconciler]` / `[cloudflare]` / `[labels]` lines).
+      render: text
+
+  - type: input
+    id: version
+    attributes:
+      label: DockRoute version / image tag
+      placeholder: e.g. v0.1.0, main@d3e2ad6
+    validations:
+      required: true
+
+  - type: input
+    id: runtime
+    attributes:
+      label: Runtime
+      placeholder: e.g. Docker 29.6 / Podman 5.x, provider=cloudflare, policy=sync

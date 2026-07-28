@@ -63,7 +63,10 @@ export function planChanges({ desired, actual, ownerId, txtPrefix, policy }: Pla
       const txtName = parseTxtName(record.hostname, txtPrefix);
       const ownership = txtName && parseOwnershipContent(record.content);
       if (txtName && ownership) {
-        ownershipByKey.set(key(txtName.type, txtName.hostname), { owner: ownership.owner, txt: record });
+        ownershipByKey.set(key(txtName.type, txtName.hostname), {
+          owner: ownership.owner,
+          txt: record,
+        });
       }
     } else if (!dataByKey.has(key(record.type, record.hostname))) {
       dataByKey.set(key(record.type, record.hostname), record);
@@ -90,7 +93,11 @@ export function planChanges({ desired, actual, ownerId, txtPrefix, policy }: Pla
     }
 
     if (ownership && ownership.owner !== ownerId) {
-      conflict(plan, want, `hostname is claimed by owner "${ownership.owner}" (dangling ownership TXT)`);
+      conflict(
+        plan,
+        want,
+        `hostname is claimed by owner "${ownership.owner}" (dangling ownership TXT)`,
+      );
       continue;
     }
 

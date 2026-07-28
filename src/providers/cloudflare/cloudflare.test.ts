@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { loadConfig, type Config } from "../../config";
+import { type Config, loadConfig } from "../../config";
 import type { DesiredState, DnsRecord, TunnelRoute } from "../../core/types";
 import { formatOwnershipContent } from "../registry/ownership";
 import type {
@@ -50,7 +50,10 @@ class FakeCloudflareApi implements CloudflareApi {
 
   async deleteDnsRecord(zoneId: string, recordId: string): Promise<void> {
     const list = this.records.get(zoneId) ?? [];
-    this.records.set(zoneId, list.filter((r) => r.id !== recordId));
+    this.records.set(
+      zoneId,
+      list.filter((r) => r.id !== recordId),
+    );
   }
 
   async getTunnelConfig(): Promise<CfTunnelConfig | null> {
@@ -94,7 +97,13 @@ const OWNED_TXT = formatOwnershipContent({ owner: "home-lab" });
 
 function seedOwned(api: FakeCloudflareApi, hostname: string, over: Partial<CfDnsRecord> = {}) {
   const type = over.type ?? "A";
-  api.seed("z1", { type, name: hostname, content: over.content ?? "10.0.0.1", ttl: over.ttl ?? 300, ...over });
+  api.seed("z1", {
+    type,
+    name: hostname,
+    content: over.content ?? "10.0.0.1",
+    ttl: over.ttl ?? 300,
+    ...over,
+  });
   api.seed("z1", {
     type: "TXT",
     name: `_dockroute-${type.toLowerCase()}.${hostname}`,
@@ -129,7 +138,9 @@ describe("CloudflareProvider — DNS", () => {
     api.records.set("z2", []);
     const provider = new CloudflareProvider(api, makeConfig());
 
-    await provider.sync(desired({ records: [record("a.sub.example.com"), record("b.example.com")] }));
+    await provider.sync(
+      desired({ records: [record("a.sub.example.com"), record("b.example.com")] }),
+    );
 
     expect(api.find("z2", "A", "a.sub.example.com")).toBeDefined();
     expect(api.find("z1", "A", "a.sub.example.com")).toBeUndefined();
@@ -147,7 +158,10 @@ describe("CloudflareProvider — DNS", () => {
 
   test("respects the domain filter", async () => {
     const api = new FakeCloudflareApi();
-    const provider = new CloudflareProvider(api, makeConfig({ DOCKROUTE_DOMAIN_FILTER: "other.org" }));
+    const provider = new CloudflareProvider(
+      api,
+      makeConfig({ DOCKROUTE_DOMAIN_FILTER: "other.org" }),
+    );
 
     await provider.sync(desired({ records: [record("a.example.com")] }));
 
@@ -156,7 +170,12 @@ describe("CloudflareProvider — DNS", () => {
 
   test("never touches an existing record without our ownership TXT", async () => {
     const api = new FakeCloudflareApi();
-    const manual = api.seed("z1", { type: "A", name: "a.example.com", content: "1.2.3.4", ttl: 60 });
+    const manual = api.seed("z1", {
+      type: "A",
+      name: "a.example.com",
+      content: "1.2.3.4",
+      ttl: 60,
+    });
     const provider = new CloudflareProvider(api, makeConfig());
 
     await provider.sync(desired({ records: [record("a.example.com")] }));
@@ -265,7 +284,12 @@ describe("CloudflareProvider — tunnel", () => {
 
   test("does not PUT when the ingress is already correct", async () => {
     const api = new FakeCloudflareApi();
-    seedOwned(api, "t.example.com", { type: "CNAME", content: TUNNEL_DOMAIN, proxied: true, ttl: 1 });
+    seedOwned(api, "t.example.com", {
+      type: "CNAME",
+      content: TUNNEL_DOMAIN,
+      proxied: true,
+      ttl: 1,
+    });
     api.tunnelConfig = {
       ingress: [{ hostname: "t.example.com", service: "http://app:80" }, CATCH_ALL],
     };
@@ -278,7 +302,12 @@ describe("CloudflareProvider — tunnel", () => {
 
   test("sync removes an orphaned managed route and its CNAME", async () => {
     const api = new FakeCloudflareApi();
-    seedOwned(api, "gone.example.com", { type: "CNAME", content: TUNNEL_DOMAIN, proxied: true, ttl: 1 });
+    seedOwned(api, "gone.example.com", {
+      type: "CNAME",
+      content: TUNNEL_DOMAIN,
+      proxied: true,
+      ttl: 1,
+    });
     api.tunnelConfig = {
       ingress: [{ hostname: "gone.example.com", service: "http://gone:80" }, CATCH_ALL],
     };

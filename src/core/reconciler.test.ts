@@ -47,14 +47,23 @@ describe("mergeDesired", () => {
   test("dedupes duplicate hostname+type, first container wins", () => {
     const merged = mergeDesired([
       { records: [record("a.example.com", { target: "10.0.0.1" })], tunnelRoutes: [] },
-      { records: [record("a.example.com", { target: "10.0.0.2", source: "c2" })], tunnelRoutes: [] },
+      {
+        records: [record("a.example.com", { target: "10.0.0.2", source: "c2" })],
+        tunnelRoutes: [],
+      },
     ]);
     expect(merged.records).toEqual([record("a.example.com", { target: "10.0.0.1" })]);
   });
 
   test("same hostname with different types is allowed", () => {
     const merged = mergeDesired([
-      { records: [record("a.example.com"), record("a.example.com", { type: "AAAA", target: "::1" })], tunnelRoutes: [] },
+      {
+        records: [
+          record("a.example.com"),
+          record("a.example.com", { type: "AAAA", target: "::1" }),
+        ],
+        tunnelRoutes: [],
+      },
     ]);
     expect(merged.records).toHaveLength(2);
   });
@@ -71,7 +80,10 @@ describe("mergeDesired", () => {
   test("dedupes duplicate tunnel routes, first wins", () => {
     const merged = mergeDesired([
       { records: [], tunnelRoutes: [route("a.example.com", { service: "http://one:80" })] },
-      { records: [], tunnelRoutes: [route("a.example.com", { service: "http://two:80", source: "c2" })] },
+      {
+        records: [],
+        tunnelRoutes: [route("a.example.com", { service: "http://two:80", source: "c2" })],
+      },
     ]);
     expect(merged.tunnelRoutes).toEqual([route("a.example.com", { service: "http://one:80" })]);
   });

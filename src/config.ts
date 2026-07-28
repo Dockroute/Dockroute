@@ -23,9 +23,7 @@ export interface Config {
 export function loadConfig(env = process.env): Config {
   const policy = env.DOCKROUTE_POLICY ?? "sync";
   if (!POLICIES.includes(policy as Policy)) {
-    throw new Error(
-      `Invalid DOCKROUTE_POLICY "${policy}". Valid values: ${POLICIES.join(", ")}`,
-    );
+    throw new Error(`Invalid DOCKROUTE_POLICY "${policy}". Valid values: ${POLICIES.join(", ")}`);
   }
 
   const provider = env.DOCKROUTE_PROVIDER ?? "log";

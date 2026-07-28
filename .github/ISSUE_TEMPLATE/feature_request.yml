@@ -1,0 +1,22 @@
+name: Feature request
+description: Propose a new capability (provider, label, policy, ...)
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem would this solve?
+      description: Describe the use case, not only the solution.
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed behavior
+      description: How would it look in labels / env vars? What should happen on conflicts?
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered

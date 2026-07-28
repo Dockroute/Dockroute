@@ -60,7 +60,7 @@ function tunnelState(
   if (!isValidServiceUrl(service)) {
     console.warn(
       `[labels] ${name}: invalid dockroute.tunnel.service "${service}" ` +
-        `(expected ${TUNNEL_SERVICE_SCHEMES.map((s) => s + "//").join(", ")}), skipping`,
+        `(expected ${TUNNEL_SERVICE_SCHEMES.map((s) => `${s}//`).join(", ")}), skipping`,
     );
     return emptyDesiredState();
   }
@@ -123,7 +123,8 @@ function providerHints(labels: Record<string, string>): Record<string, string> |
     if (!key.startsWith(PREFIX)) continue;
     const suffix = key.slice(PREFIX.length);
     if (KNOWN_KEYS.has(suffix) || !suffix.includes(".")) continue;
-    (hints ??= {})[suffix] = value;
+    hints ??= {};
+    hints[suffix] = value;
   }
   return hints;
 }

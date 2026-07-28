@@ -1,14 +1,14 @@
 import type { Config } from "../../config";
 import type { DesiredState, DnsRecord, TunnelRoute } from "../../core/types";
-import { registerProvider, type Provider } from "../provider";
-import { planChanges, type Plan, type RegistryRecord } from "../registry/planner";
+import { type Provider, registerProvider } from "../provider";
 import { parseOwnershipContent, parseTxtName } from "../registry/ownership";
+import { type Plan, planChanges, type RegistryRecord } from "../registry/planner";
 import {
-  CloudflareFetchApi,
   type CfDnsRecord,
   type CfDnsRecordInput,
   type CfZone,
   type CloudflareApi,
+  CloudflareFetchApi,
 } from "./api";
 import { mergeIngress } from "./tunnel";
 
@@ -246,7 +246,7 @@ function ownedTunnelHostnames(
   for (const { registry } of actual) {
     if (registry.type !== "TXT") continue;
     const txtName = parseTxtName(registry.hostname, config.txtPrefix);
-    if (!txtName || txtName.type !== "CNAME") continue;
+    if (txtName?.type !== "CNAME") continue;
     if (parseOwnershipContent(registry.content)?.owner === config.ownerId) {
       ownedCnames.add(txtName.hostname);
     }

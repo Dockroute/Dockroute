@@ -7,7 +7,9 @@ afterEach(() => {
   globalThis.fetch = realFetch;
 });
 
-function stubFetch(handler: (url: string, init?: RequestInit) => { status?: number; body: unknown }) {
+function stubFetch(
+  handler: (url: string, init?: RequestInit) => { status?: number; body: unknown },
+) {
   const calls: string[] = [];
   globalThis.fetch = (async (url: string | URL | Request, init?: RequestInit) => {
     const u = String(url);
@@ -53,7 +55,11 @@ describe("CloudflareFetchApi", () => {
   test("surfaces Cloudflare error messages", async () => {
     stubFetch(() => ({
       status: 403,
-      body: { success: false, errors: [{ code: 9109, message: "Invalid access token" }], result: null },
+      body: {
+        success: false,
+        errors: [{ code: 9109, message: "Invalid access token" }],
+        result: null,
+      },
     }));
 
     expect(new CloudflareFetchApi("bad").listZones()).rejects.toThrow(/9109: Invalid access token/);

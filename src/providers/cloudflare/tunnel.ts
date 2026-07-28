@@ -44,11 +44,19 @@ export function mergeIngress({
   const catchAll = last && last.hostname === undefined ? last : CATCH_ALL;
   const rules = last && last.hostname === undefined ? current.slice(0, -1) : current;
 
-  const unmanaged = rules.filter((r) => r.hostname === undefined || !managedHostnames.has(r.hostname));
-  const existingManaged = rules.filter((r) => r.hostname !== undefined && managedHostnames.has(r.hostname));
-  const unmanagedHostnames = new Set(unmanaged.map((r) => r.hostname).filter((h) => h !== undefined));
+  const unmanaged = rules.filter(
+    (r) => r.hostname === undefined || !managedHostnames.has(r.hostname),
+  );
+  const existingManaged = rules.filter(
+    (r) => r.hostname !== undefined && managedHostnames.has(r.hostname),
+  );
+  const unmanagedHostnames = new Set(
+    unmanaged.map((r) => r.hostname).filter((h) => h !== undefined),
+  );
 
-  const conflicts = desired.filter((d) => unmanagedHostnames.has(d.hostname)).map((d) => d.hostname);
+  const conflicts = desired
+    .filter((d) => unmanagedHostnames.has(d.hostname))
+    .map((d) => d.hostname);
   const wanted = desired.filter((d) => !unmanagedHostnames.has(d.hostname));
 
   const managed = mergeManaged(existingManaged, wanted, policy);

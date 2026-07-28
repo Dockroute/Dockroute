@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import { formatOwnershipContent } from "./ownership";
-import { planChanges, type PlanInput, type RegistryRecord } from "./planner";
+import { type PlanInput, planChanges, type RegistryRecord } from "./planner";
 
 const PREFIX = "_dockroute-";
 const OWNER = "home-lab";
@@ -160,7 +160,10 @@ describe("planChanges — policies and orphans", () => {
     });
     expect(p.updates).toEqual([]);
     expect(p.deletes).toEqual([]);
-    expect(p.creates.map((r) => r.hostname)).toEqual(["new.example.com", "_dockroute-a.new.example.com"]);
+    expect(p.creates.map((r) => r.hostname)).toEqual([
+      "new.example.com",
+      "_dockroute-a.new.example.com",
+    ]);
   });
 
   test("same hostname with different record types is tracked independently", () => {
@@ -168,7 +171,10 @@ describe("planChanges — policies and orphans", () => {
       desired: [rec("a.example.com"), rec("a.example.com", { type: "AAAA", content: "::1" })],
       actual: [rec("a.example.com"), ownedTxt("a.example.com")],
     });
-    expect(p.creates.map((r) => r.hostname)).toEqual(["a.example.com", "_dockroute-aaaa.a.example.com"]);
+    expect(p.creates.map((r) => r.hostname)).toEqual([
+      "a.example.com",
+      "_dockroute-aaaa.a.example.com",
+    ]);
     expect(p.updates).toEqual([]);
   });
 });

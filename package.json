@@ -9,9 +9,12 @@
     "start": "bun run src/index.ts",
     "dev": "bun run --watch src/index.ts",
     "typecheck": "tsc --noEmit",
-    "test": "bun test"
+    "test": "bun test",
+    "lint": "biome check .",
+    "lint:fix": "biome check --write ."
   },
   "devDependencies": {
+    "@biomejs/biome": "^2.5.5",
     "@types/bun": "latest"
   },
   "peerDependencies": {

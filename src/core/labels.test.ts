@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
-import type { ContainerInfo } from "./types";
 import { desiredFromContainer } from "./labels";
+import type { ContainerInfo } from "./types";
 
 function container(labels: Record<string, string>): ContainerInfo {
   return { Id: "abc123def4567890", Names: ["/whoami"], Labels: labels, State: "running" };
@@ -11,7 +11,9 @@ const empty = { records: [], tunnelRoutes: [] };
 describe("desiredFromContainer", () => {
   test("ignores containers without dockroute.enabled", () => {
     expect(desiredFromContainer(container({}))).toEqual(empty);
-    expect(desiredFromContainer(container({ "dockroute.hostname": "a.example.com" }))).toEqual(empty);
+    expect(desiredFromContainer(container({ "dockroute.hostname": "a.example.com" }))).toEqual(
+      empty,
+    );
   });
 
   test("builds an A record with defaults", () => {
@@ -20,7 +22,13 @@ describe("desiredFromContainer", () => {
       { defaultTarget: "192.168.1.10" },
     );
     expect(records).toEqual([
-      { hostname: "a.example.com", type: "A", target: "192.168.1.10", ttl: 300, source: "abc123def4567890" },
+      {
+        hostname: "a.example.com",
+        type: "A",
+        target: "192.168.1.10",
+        ttl: 300,
+        source: "abc123def4567890",
+      },
     ]);
   });
 
@@ -50,7 +58,9 @@ describe("desiredFromContainer", () => {
 
   test("skips when no target is resolvable or type is unsupported", () => {
     expect(
-      desiredFromContainer(container({ "dockroute.enabled": "true", "dockroute.hostname": "a.example.com" })),
+      desiredFromContainer(
+        container({ "dockroute.enabled": "true", "dockroute.hostname": "a.example.com" }),
+      ),
     ).toEqual(empty);
     expect(
       desiredFromContainer(

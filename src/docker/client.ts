@@ -26,10 +26,10 @@ export class DockerClient {
       type: ["container"],
       event: ["start", "die", "stop", "destroy"],
     });
-    const res = await fetch(
-      `http://docker/events?filters=${encodeURIComponent(filters)}`,
-      { unix: this.sockPath, signal },
-    );
+    const res = await fetch(`http://docker/events?filters=${encodeURIComponent(filters)}`, {
+      unix: this.sockPath,
+      signal,
+    });
     if (!res.ok || !res.body) {
       throw new Error(`Docker events API ${res.status}`);
     }

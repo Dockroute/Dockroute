@@ -85,12 +85,14 @@ export class CloudflareFetchApi implements CloudflareApi {
     return result.config ?? null;
   }
 
-  async putTunnelConfig(accountId: string, tunnelId: string, config: CfTunnelConfig): Promise<void> {
-    await this.request(
-      `/accounts/${accountId}/cfd_tunnel/${tunnelId}/configurations`,
-      "PUT",
-      { config },
-    );
+  async putTunnelConfig(
+    accountId: string,
+    tunnelId: string,
+    config: CfTunnelConfig,
+  ): Promise<void> {
+    await this.request(`/accounts/${accountId}/cfd_tunnel/${tunnelId}/configurations`, "PUT", {
+      config,
+    });
   }
 
   private async paginate<T>(path: string): Promise<T[]> {
@@ -107,7 +109,11 @@ export class CloudflareFetchApi implements CloudflareApi {
     return (await this.rawRequest<T>(path, method, body)).result;
   }
 
-  private async rawRequest<T>(path: string, method: string, body?: unknown): Promise<CfResponse<T>> {
+  private async rawRequest<T>(
+    path: string,
+    method: string,
+    body?: unknown,
+  ): Promise<CfResponse<T>> {
     const res = await fetch(`${BASE_URL}${path}`, {
       method,
       headers: {

@@ -11,8 +11,13 @@ const PREFIX = "_dockroute-";
 describe("ownership content", () => {
   test("format/parse round-trip", () => {
     const content = formatOwnershipContent({ owner: "home-lab", resource: "container/whoami" });
-    expect(content).toBe("heritage=dockroute,dockroute/owner=home-lab,dockroute/resource=container/whoami");
-    expect(parseOwnershipContent(content)).toEqual({ owner: "home-lab", resource: "container/whoami" });
+    expect(content).toBe(
+      "heritage=dockroute,dockroute/owner=home-lab,dockroute/resource=container/whoami",
+    );
+    expect(parseOwnershipContent(content)).toEqual({
+      owner: "home-lab",
+      resource: "container/whoami",
+    });
   });
 
   test("resource is optional", () => {

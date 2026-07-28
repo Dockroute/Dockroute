@@ -21,7 +21,9 @@ describe("loadConfig", () => {
   });
 
   test("rejects an invalid policy", () => {
-    expect(() => loadConfig({ DOCKROUTE_POLICY: "delete-everything" })).toThrow(/Invalid DOCKROUTE_POLICY/);
+    expect(() => loadConfig({ DOCKROUTE_POLICY: "delete-everything" })).toThrow(
+      /Invalid DOCKROUTE_POLICY/,
+    );
   });
 
   test("parses the domain filter as a trimmed list", () => {

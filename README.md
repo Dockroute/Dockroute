@@ -1,5 +1,9 @@
 # dockroute
 
+[![CI](https://github.com/Dockroute/Dockroute/actions/workflows/ci.yml/badge.svg)](https://github.com/Dockroute/Dockroute/actions/workflows/ci.yml)
+[![Release](https://img.shields.io/github/v/release/Dockroute/Dockroute?include_prereleases)](https://github.com/Dockroute/Dockroute/releases)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+
 External-DNS for plain Docker hosts: dockroute watches your running
 containers, reads `dockroute.*` labels and reconciles the matching DNS
 records — and Cloudflare Tunnel routes — in a pluggable provider.
@@ -31,7 +35,7 @@ Run dockroute next to it:
 ```yaml
 services:
   dockroute:
-    image: dockroute # build locally for now: docker build -t dockroute .
+    image: ghcr.io/dockroute/dockroute:latest
     environment:
       DOCKROUTE_PROVIDER: cloudflare
       DOCKROUTE_OWNER_ID: home-lab
@@ -41,6 +45,10 @@ services:
       CLOUDFLARE_TUNNEL_ID: ${CLOUDFLARE_TUNNEL_ID}
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
+    # the image runs as a non-root user; grant it the host's docker group
+    # to read the socket:  stat -c '%g' /var/run/docker.sock
+    group_add:
+      - "990"
 ```
 
 Or start with the zero-credential dry run:
@@ -93,9 +101,13 @@ DOCKROUTE_DEFAULT_TARGET=192.168.1.10 bun start   # provider=log by default
 
 ```sh
 bun install
-bun test
-bun run typecheck
+bun test            # unit tests (in-memory fakes, no real HTTP)
+bun run typecheck   # strict TypeScript
+bun run lint        # Biome — bun run lint:fix to auto-fix
 ```
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for the ground rules (ownership
+safety, anti-corruption layer, testing style) and how to add a provider.
 
 ## License
 
