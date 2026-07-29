@@ -43,17 +43,25 @@ jobs:
     runs-on: ubuntu-latest
     needs: verify
     permissions:
-      contents: write
-      issues: write
-      pull-requests: write
+      contents: read
     outputs:
       published: ${{ steps.semantic.outputs.new_release_published }}
       version: ${{ steps.semantic.outputs.new_release_version }}
       git_tag: ${{ steps.semantic.outputs.new_release_git_tag }}
     steps:
+      # The release commit and tag are pushed as the dockroute-release-bot
+      # GitHub App, which has bypass on the protect-main ruleset.
+      - name: Mint release bot token
+        id: app-token
+        uses: actions/create-github-app-token@v2
+        with:
+          app-id: ${{ secrets.RELEASE_APP_ID }}
+          private-key: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
+
       - uses: actions/checkout@v7
         with:
           fetch-depth: 0
+          token: ${{ steps.app-token.outputs.token }}
 
       - name: Run semantic-release
         id: semantic
@@ -64,7 +72,7 @@ jobs:
             @semantic-release/git@11
             conventional-changelog-conventionalcommits@10
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ steps.app-token.outputs.token }}
 
   publish:
     name: Publish image to GHCR
