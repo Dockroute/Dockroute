@@ -7,16 +7,23 @@ updates:
     groups:
       actions:
         patterns: ["*"]
+    commit-message:
+      prefix: "chore(ci)"
 
-  - package-ecosystem: npm
+  - package-ecosystem: bun
     directory: /
     schedule:
       interval: weekly
     groups:
       dev-dependencies:
         dependency-type: development
+    commit-message:
+      prefix: "fix(deps)"
+      prefix-development: "chore(deps)"
 
   - package-ecosystem: docker
     directory: /
     schedule:
       interval: weekly
+    commit-message:
+      prefix: "fix(deps)"
