@@ -15,6 +15,7 @@ export class Watcher {
     private docker: DockerClient,
     private reconciler: Reconciler,
     private resyncSeconds: number,
+    private retryMs = EVENT_STREAM_RETRY_MS,
   ) {}
 
   async start(): Promise<void> {
@@ -33,15 +34,26 @@ export class Watcher {
   }
 
   private async watchEvents(): Promise<void> {
+    let catchUp = false;
     while (!this.abort.signal.aborted) {
       try {
+        if (catchUp) {
+          catchUp = false;
+          await this.reconciler.reconcile();
+        }
         for await (const _ of this.docker.containerEvents(this.abort.signal)) {
           await this.reconciler.reconcile();
         }
       } catch (err) {
         if (this.abort.signal.aborted) return;
-        console.error(`[watcher] event stream lost, retrying in ${EVENT_STREAM_RETRY_MS}ms:`, err);
-        await Bun.sleep(EVENT_STREAM_RETRY_MS);
+        catchUp = true;
+        // Bun's fetch aborts response streams after ~5 idle minutes and the
+        // Docker events endpoint is silent while nothing changes, so a
+        // TimeoutError is routine: resubscribe right away without logging.
+        if (err instanceof Error && err.name === "TimeoutError") continue;
+        const detail = err instanceof Error ? `${err.name}: ${err.message}` : String(err);
+        console.error(`[watcher] event stream lost, retrying in ${this.retryMs}ms: ${detail}`);
+        await Bun.sleep(this.retryMs);
       }
     }
   }
