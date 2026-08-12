@@ -12,7 +12,7 @@
       "logo": "https://github.com/Dockroute.png",
       "image": "ghcr.io/dockroute/dockroute:latest",
       "restart_policy": "unless-stopped",
-      "note": "Socket permissions are handled automatically: the entrypoint grants the app user the Docker socket's group and drops privileges before starting. Start with the default <code>log</code> provider for a zero-credential dry run, then switch to <code>cloudflare</code>. Opt containers in with labels: <code>dockroute.enabled=true</code> and <code>dockroute.hostname=app.example.com</code>. Docs: https://github.com/Dockroute/Dockroute",
+      "note": "Socket permissions are handled automatically: the entrypoint grants the app user the Docker socket's group and drops privileges before starting. Start with the default <code>log</code> provider for a zero-credential dry run, then switch to <code>cloudflare</code>. Opt containers in with labels: <code>dockroute.enabled=true</code> and <code>dockroute.hostname=app.example.com</code>. Docs: https://www.dockroute.dev — Source: https://github.com/Dockroute/Dockroute",
       "env": [
         {
           "name": "DOCKROUTE_PROVIDER",

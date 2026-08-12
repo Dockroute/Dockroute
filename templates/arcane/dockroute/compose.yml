@@ -1,6 +1,7 @@
 x-arcane:
   icon: https://github.com/Dockroute.png
   urls:
+    - https://www.dockroute.dev
     - https://github.com/Dockroute/Dockroute
 
 services:
