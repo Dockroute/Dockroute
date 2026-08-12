@@ -7,15 +7,17 @@
   <Shell>sh</Shell>
   <Privileged>false</Privileged>
   <Support>https://github.com/Dockroute/Dockroute/issues</Support>
-  <Project>https://github.com/Dockroute/Dockroute</Project>
+  <Project>https://www.dockroute.dev</Project>
   <Overview>External-DNS for plain Docker hosts: DockRoute watches your running containers, reads dockroute.* labels and reconciles the matching DNS records - and Cloudflare Tunnel routes - in a pluggable provider.&#xD;
 &#xD;
 Your Docker labels are the source of truth; DockRoute makes the provider match them, and never alters records it cannot prove it manages (ExternalDNS-style TXT ownership).&#xD;
 &#xD;
-Opt a container in with labels: dockroute.enabled=true and dockroute.hostname=app.example.com. Start with the default 'log' provider for a zero-credential dry run, then switch to 'cloudflare'.</Overview>
+Opt a container in with labels: dockroute.enabled=true and dockroute.hostname=app.example.com. Start with the default 'log' provider for a zero-credential dry run, then switch to 'cloudflare'.&#xD;
+&#xD;
+Docs: https://www.dockroute.dev</Overview>
   <Category>Network:DNS Tools:Utilities</Category>
   <Icon>https://github.com/Dockroute.png</Icon>
-  <TemplateURL>https://raw.githubusercontent.com/Dockroute/Dockroute/main/templates/unraid/dockroute.xml</TemplateURL>
+  <TemplateURL>https://raw.githubusercontent.com/Dockroute/unraid-templates/main/dockroute.xml</TemplateURL>
 
   <Config Name="Docker socket" Target="/var/run/docker.sock" Default="/var/run/docker.sock" Mode="ro" Description="Docker Engine socket (read-only). DockRoute only listens to events and lists containers." Type="Path" Display="advanced" Required="true" Mask="false">/var/run/docker.sock</Config>
   <Config Name="Provider" Target="DOCKROUTE_PROVIDER" Default="log" Mode="" Description="DNS provider: 'log' (dry run, prints desired state, no credentials needed) or 'cloudflare'." Type="Variable" Display="always" Required="true" Mask="false">log</Config>

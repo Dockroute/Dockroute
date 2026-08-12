@@ -29,5 +29,4 @@ services:
       dockroute.tunnel.service: "http://whoami:80"
 ```
 
-Full label and configuration reference:
-https://github.com/Dockroute/Dockroute#readme
+Full label and configuration reference: https://www.dockroute.dev
