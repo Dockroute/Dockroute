@@ -15,7 +15,7 @@ Your Docker labels are the source of truth; DockRoute makes the provider match t
 Opt a container in with labels: dockroute.enabled=true and dockroute.hostname=app.example.com. Start with the default 'log' provider for a zero-credential dry run, then switch to 'cloudflare'.</Overview>
   <Category>Network:DNS Tools:Utilities</Category>
   <Icon>https://github.com/Dockroute.png</Icon>
-  <TemplateURL>https://raw.githubusercontent.com/Dockroute/Dockroute/main/templates/unraid/dockroute.xml</TemplateURL>
+  <TemplateURL>https://raw.githubusercontent.com/Dockroute/unraid-templates/main/dockroute.xml</TemplateURL>
 
   <Config Name="Docker socket" Target="/var/run/docker.sock" Default="/var/run/docker.sock" Mode="ro" Description="Docker Engine socket (read-only). DockRoute only listens to events and lists containers." Type="Path" Display="advanced" Required="true" Mask="false">/var/run/docker.sock</Config>
   <Config Name="Provider" Target="DOCKROUTE_PROVIDER" Default="log" Mode="" Description="DNS provider: 'log' (dry run, prints desired state, no credentials needed) or 'cloudflare'." Type="Variable" Display="always" Required="true" Mask="false">log</Config>
