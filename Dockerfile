@@ -13,6 +13,9 @@ RUN apt-get update \
 COPY --from=install /app/node_modules ./node_modules
 COPY package.json ./
 COPY src ./src
+COPY --chmod=755 docker-entrypoint.sh /docker-entrypoint.sh
 
-USER bun
-ENTRYPOINT ["bun", "run", "src/index.ts"]
+# No USER: the entrypoint grants the app user the Docker socket's group
+# (whatever GID the host uses) and drops to it before exec'ing the app.
+ENTRYPOINT ["/docker-entrypoint.sh"]
+CMD ["bun", "run", "src/index.ts"]

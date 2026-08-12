@@ -1,0 +1,7 @@
+{
+  "name": "DockRoute",
+  "description": "External-DNS for plain Docker hosts — reconciles DNS records and Cloudflare Tunnel routes from container labels.",
+  "version": "1.0.0",
+  "author": "danilodorgam",
+  "tags": ["dns", "networking", "automation", "cloudflare", "docker"]
+}

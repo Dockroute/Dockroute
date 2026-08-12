@@ -1,0 +1,30 @@
+<?xml version="1.0"?>
+<Container version="2">
+  <Name>DockRoute</Name>
+  <Repository>ghcr.io/dockroute/dockroute:latest</Repository>
+  <Registry>https://github.com/Dockroute/Dockroute/pkgs/container/dockroute</Registry>
+  <Network>bridge</Network>
+  <Shell>sh</Shell>
+  <Privileged>false</Privileged>
+  <Support>https://github.com/Dockroute/Dockroute/issues</Support>
+  <Project>https://github.com/Dockroute/Dockroute</Project>
+  <Overview>External-DNS for plain Docker hosts: DockRoute watches your running containers, reads dockroute.* labels and reconciles the matching DNS records - and Cloudflare Tunnel routes - in a pluggable provider.&#xD;
+&#xD;
+Your Docker labels are the source of truth; DockRoute makes the provider match them, and never alters records it cannot prove it manages (ExternalDNS-style TXT ownership).&#xD;
+&#xD;
+Opt a container in with labels: dockroute.enabled=true and dockroute.hostname=app.example.com. Start with the default 'log' provider for a zero-credential dry run, then switch to 'cloudflare'.</Overview>
+  <Category>Network:DNS Tools:Utilities</Category>
+  <Icon>https://github.com/Dockroute.png</Icon>
+  <TemplateURL>https://raw.githubusercontent.com/Dockroute/Dockroute/main/templates/unraid/dockroute.xml</TemplateURL>
+
+  <Config Name="Docker socket" Target="/var/run/docker.sock" Default="/var/run/docker.sock" Mode="ro" Description="Docker Engine socket (read-only). DockRoute only listens to events and lists containers." Type="Path" Display="advanced" Required="true" Mask="false">/var/run/docker.sock</Config>
+  <Config Name="Provider" Target="DOCKROUTE_PROVIDER" Default="log" Mode="" Description="DNS provider: 'log' (dry run, prints desired state, no credentials needed) or 'cloudflare'." Type="Variable" Display="always" Required="true" Mask="false">log</Config>
+  <Config Name="Owner ID" Target="DOCKROUTE_OWNER_ID" Default="default" Mode="" Description="Ownership id written to companion TXT records; lets several DockRoute instances share a zone safely." Type="Variable" Display="always" Required="false" Mask="false">default</Config>
+  <Config Name="Sync policy" Target="DOCKROUTE_POLICY" Default="sync" Mode="" Description="sync = create/update/delete owned records; upsert-only = never delete; create-only = never update or delete." Type="Variable" Display="always" Required="false" Mask="false">sync</Config>
+  <Config Name="Default target" Target="DOCKROUTE_DEFAULT_TARGET" Default="" Mode="" Description="Fallback record value (IP or CNAME target) when a container omits the dockroute.target label. E.g. your server's LAN or WAN IP." Type="Variable" Display="always" Required="false" Mask="false"/>
+  <Config Name="Domain filter" Target="DOCKROUTE_DOMAIN_FILTER" Default="" Mode="" Description="Optional comma-separated allowlist of DNS zones DockRoute may touch. Empty = all zones the token can see." Type="Variable" Display="always" Required="false" Mask="false"/>
+  <Config Name="Resync interval (seconds)" Target="DOCKROUTE_RESYNC_SECONDS" Default="60" Mode="" Description="Interval of the periodic full reconcile that backs up the event stream." Type="Variable" Display="advanced" Required="false" Mask="false">60</Config>
+  <Config Name="Cloudflare API token" Target="CLOUDFLARE_API_TOKEN" Default="" Mode="" Description="Required when provider is cloudflare. Needs Zone > DNS > Edit (+ Account > Cloudflare Tunnel > Edit for tunnel publishing)." Type="Variable" Display="always" Required="false" Mask="true"/>
+  <Config Name="Cloudflare account ID" Target="CLOUDFLARE_ACCOUNT_ID" Default="" Mode="" Description="Only needed for Cloudflare Tunnel publishing." Type="Variable" Display="advanced" Required="false" Mask="false"/>
+  <Config Name="Cloudflare tunnel ID" Target="CLOUDFLARE_TUNNEL_ID" Default="" Mode="" Description="Only needed for Cloudflare Tunnel publishing. Uses an existing tunnel - you keep running cloudflared yourself." Type="Variable" Display="advanced" Required="false" Mask="false"/>
+</Container>

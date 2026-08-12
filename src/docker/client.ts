@@ -11,6 +11,12 @@ export class DockerClient {
     return fetch(`http://docker${path}`, { unix: this.sockPath });
   }
 
+  /** Cheap connectivity check against the Engine's /_ping endpoint. */
+  async ping(): Promise<void> {
+    const res = await this.fetch("/_ping");
+    if (!res.ok) throw new Error(`Docker API ${res.status}: ${await res.text()}`);
+  }
+
   async listRunningContainers(): Promise<ContainerInfo[]> {
     const res = await this.fetch("/containers/json");
     if (!res.ok) throw new Error(`Docker API ${res.status}: ${await res.text()}`);

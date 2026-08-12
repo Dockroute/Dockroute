@@ -47,10 +47,8 @@ services:
       CLOUDFLARE_TUNNEL_ID: ${CLOUDFLARE_TUNNEL_ID}
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
-    # the image runs as a non-root user; grant it the host's docker group
-    # to read the socket:  stat -c '%g' /var/run/docker.sock
-    group_add:
-      - "990"
+    # No user/group setup needed: the entrypoint detects the socket's group,
+    # grants it to the app user and drops privileges before starting.
 ```
 
 Or start with the zero-credential dry run:
