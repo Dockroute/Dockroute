@@ -41,4 +41,27 @@ describe("loadConfig", () => {
     });
     expect(config.cloudflare).toEqual({ apiToken: "token", accountId: "acc", tunnelId: "tun" });
   });
+
+  test("requires url and password for the pihole provider", () => {
+    expect(() => loadConfig({ DOCKROUTE_PROVIDER: "pihole" })).toThrow(
+      /PIHOLE_URL and PIHOLE_PASSWORD/,
+    );
+  });
+
+  test("requires a domain filter for the pihole provider", () => {
+    expect(() =>
+      loadConfig({
+        DOCKROUTE_PROVIDER: "pihole",
+        PIHOLE_URL: "http://pihole",
+        PIHOLE_PASSWORD: "pw",
+      }),
+    ).toThrow(/DOCKROUTE_DOMAIN_FILTER is required/);
+    const config = loadConfig({
+      DOCKROUTE_PROVIDER: "pihole",
+      PIHOLE_URL: "http://pihole",
+      PIHOLE_PASSWORD: "pw",
+      DOCKROUTE_DOMAIN_FILTER: "home.lan",
+    });
+    expect(config.pihole).toEqual({ url: "http://pihole", password: "pw" });
+  });
 });

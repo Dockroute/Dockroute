@@ -38,7 +38,9 @@ flowchart LR
      pipeline run with zero credentials.
    - `cloudflare` — DNS records + Cloudflare Tunnel ingress routes, with
      TXT-based ownership.
-   - `route53`, `rfc2136`, `pihole`, ... — future.
+   - `pihole` — Pi-hole v6 local DNS for intranet-only hostnames
+     (filter-scoped ownership, see below).
+   - `route53`, `rfc2136`, ... — future.
 
 ## Ownership (TXT registry)
 
@@ -105,6 +107,32 @@ ingress list):
   when it actually changed. The endpoint is last-writer-wins, so DockRoute
   assumes it is the **only automated writer** for the tunnels it manages.
 
+## Pi-hole (filter-scoped ownership)
+
+The `pihole` provider writes **local DNS** entries through the Pi-hole v6
+REST API: A/AAAA records as `"IP hostname"` entries in `dns.hosts`, CNAMEs as
+`"source,target[,ttl]"` entries in `dns.cnameRecords`. Its purpose is
+split-horizon setups — hostnames that must resolve only inside the LAN while
+a second DockRoute instance publishes the rest through a public provider.
+
+Pi-hole local DNS cannot carry TXT records, so the TXT registry does not
+apply. Instead, ownership is scoped by configuration — the same model the
+tunnel ingress uses ("DockRoute assumes it is the only automated writer for
+what it manages"):
+
+- `DOCKROUTE_DOMAIN_FILTER` is **required** (startup error without it).
+- Hostnames matching the filter are treated as exclusively DockRoute-managed;
+  sync policies keep their usual semantics inside that boundary (`sync`
+  deletes orphans there, including manually created entries — documented).
+- Anything outside the filter is never created, updated or deleted.
+- Multi-hostname entries (`ip host1 host2`) are left unmanaged and skipped
+  with a warning, even inside the filter.
+- A/AAAA TTLs are ignored (hosts entries have none); CNAME TTLs are honored.
+- Updates are delete-then-add: Pi-hole config entries are plain strings with
+  no stable id.
+- Auth is a session `sid` from `POST /api/auth` (app password), re-acquired
+  once on 401; tunnel routes are warned about and skipped.
+
 ## Label schema
 
 | Label                        | Required | Default                    | Description                                  |
@@ -140,10 +168,12 @@ services:
 | `DOCKROUTE_OWNER_ID`       | `default`              | Ownership id written into registry TXTs |
 | `DOCKROUTE_POLICY`         | `sync`                 | `sync`, `upsert-only` or `create-only`  |
 | `DOCKROUTE_TXT_PREFIX`     | `_dockroute-`          | Registry TXT name prefix                |
-| `DOCKROUTE_DOMAIN_FILTER`  | —                      | Comma-separated zone allowlist          |
+| `DOCKROUTE_DOMAIN_FILTER`  | —                      | Comma-separated zone allowlist (required for `pihole`) |
 | `CLOUDFLARE_API_TOKEN`     | —                      | Required for `cloudflare`. Scopes: Zone → DNS → Edit; Account → Cloudflare Tunnel → Edit (tunnel only) |
 | `CLOUDFLARE_ACCOUNT_ID`    | —                      | Required for tunnel features            |
 | `CLOUDFLARE_TUNNEL_ID`     | —                      | Required for tunnel features            |
+| `PIHOLE_URL`               | —                      | Required for `pihole`: v6 base URL      |
+| `PIHOLE_PASSWORD`          | —                      | Required for `pihole`: app password     |
 
 ## Source layout
 
@@ -168,6 +198,10 @@ src/
       api.ts            Cloudflare v4 wire client (wire types stay here — ACL)
       cloudflare.ts     provider: zones, planner execution, TTL normalization
       tunnel.ts         pure ingress merge (managed/unmanaged/catch-all)
+    pihole/
+      api.ts            Pi-hole v6 wire client: session auth, dns.hosts,
+                        dns.cnameRecords (wire formats stay here — ACL)
+      pihole.ts         provider: filter-scoped ownership, hosts/CNAME diff
 ```
 
 ## Design decisions

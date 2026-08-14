@@ -6,6 +6,7 @@ import { Watcher } from "./docker/watcher";
 import { createProvider } from "./providers/provider";
 import "./providers/log";
 import "./providers/cloudflare/cloudflare";
+import "./providers/pihole/pihole";
 
 const config = loadConfig();
 console.log(`dockroute starting (provider=${config.provider}, sock=${config.dockerSock})`);

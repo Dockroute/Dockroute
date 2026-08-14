@@ -7,6 +7,11 @@ export interface CloudflareConfig {
   tunnelId?: string;
 }
 
+export interface PiholeConfig {
+  url?: string;
+  password?: string;
+}
+
 export interface Config {
   dockerSock: string;
   provider: string;
@@ -18,6 +23,7 @@ export interface Config {
   /** Optional allowlist of zones DockRoute may touch. Empty = all. */
   domainFilter: string[];
   cloudflare: CloudflareConfig;
+  pihole: PiholeConfig;
 }
 
 export function loadConfig(env = process.env): Config {
@@ -36,6 +42,29 @@ export function loadConfig(env = process.env): Config {
     throw new Error("CLOUDFLARE_API_TOKEN is required when DOCKROUTE_PROVIDER=cloudflare");
   }
 
+  const domainFilter = (env.DOCKROUTE_DOMAIN_FILTER ?? "")
+    .split(",")
+    .map((d) => d.trim())
+    .filter(Boolean);
+
+  const pihole: PiholeConfig = {
+    url: env.PIHOLE_URL,
+    password: env.PIHOLE_PASSWORD,
+  };
+  if (provider === "pihole") {
+    if (!pihole.url || !pihole.password) {
+      throw new Error("PIHOLE_URL and PIHOLE_PASSWORD are required when DOCKROUTE_PROVIDER=pihole");
+    }
+    if (domainFilter.length === 0) {
+      // Pi-hole local DNS cannot store ownership TXT records, so the domain
+      // filter is the only boundary between managed and hands-off entries.
+      throw new Error(
+        "DOCKROUTE_DOMAIN_FILTER is required when DOCKROUTE_PROVIDER=pihole — " +
+          "it defines the domains DockRoute exclusively manages in Pi-hole",
+      );
+    }
+  }
+
   return {
     dockerSock: env.DOCKER_SOCK ?? "/var/run/docker.sock",
     provider,
@@ -44,10 +73,8 @@ export function loadConfig(env = process.env): Config {
     ownerId: env.DOCKROUTE_OWNER_ID ?? "default",
     policy: policy as Policy,
     txtPrefix: env.DOCKROUTE_TXT_PREFIX ?? "_dockroute-",
-    domainFilter: (env.DOCKROUTE_DOMAIN_FILTER ?? "")
-      .split(",")
-      .map((d) => d.trim())
-      .filter(Boolean),
+    domainFilter,
     cloudflare,
+    pihole,
   };
 }
