@@ -62,6 +62,8 @@ jobs:
           tags: dockroute:ci
           cache-from: type=gha
           cache-to: type=gha,mode=max
+          # Never cache the release stage: its apt-get upgrade must see new CVE fixes
+          no-cache-filters: release
 
       - name: Scan image with Trivy
         uses: aquasecurity/trivy-action@v0.36.0
