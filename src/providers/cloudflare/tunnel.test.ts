@@ -97,6 +97,20 @@ describe("mergeIngress", () => {
     expect(result.ingress).toEqual([CATCH_ALL]);
   });
 
+  test("sync keeps an orphaned rule whose DNS deletion is still deferred", () => {
+    const current = [
+      { hostname: "restarting.example.com", service: "http://restarting:80" },
+      CATCH_ALL,
+    ];
+    const result = merge({
+      current,
+      managedHostnames: new Set(["restarting.example.com"]),
+      retainHostnames: new Set(["restarting.example.com"]),
+    });
+    expect(result.changed).toBe(false);
+    expect(result.ingress).toEqual(current);
+  });
+
   test("upsert-only keeps orphaned managed rules", () => {
     const current = [{ hostname: "gone.example.com", service: "http://gone:80" }, CATCH_ALL];
     const result = merge({

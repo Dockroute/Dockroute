@@ -1,6 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { type Config, loadConfig } from "../../config";
 import type { DesiredState, DnsRecord, TunnelRoute } from "../../core/types";
+import { DeleteGrace } from "../registry/grace";
 import { formatOwnershipContent } from "../registry/ownership";
 import type {
   CfDnsRecord,
@@ -70,16 +71,29 @@ class FakeCloudflareApi implements CloudflareApi {
   }
 }
 
+/** Deletes are immediate here; the grace window has its own describe block. */
 function makeConfig(env: Record<string, string> = {}): Config {
   return loadConfig({
     DOCKROUTE_PROVIDER: "cloudflare",
     CLOUDFLARE_API_TOKEN: "token",
     DOCKROUTE_OWNER_ID: "home-lab",
+    DOCKROUTE_DELETE_GRACE_SECONDS: "0",
     ...env,
   });
 }
 
 const tunnelEnv = { CLOUDFLARE_ACCOUNT_ID: "acc-1", CLOUDFLARE_TUNNEL_ID: TUNNEL_ID };
+
+/** Millisecond clock for DeleteGrace, advanced in seconds. */
+function fakeClock(start = 1_700_000_000_000) {
+  let now = start;
+  return {
+    now: () => now,
+    advance: (seconds: number) => {
+      now += seconds * 1000;
+    },
+  };
+}
 
 function record(hostname: string, over: Partial<DnsRecord> = {}): DnsRecord {
   return { hostname, type: "A", target: "10.0.0.1", ttl: 300, source: "c1", ...over };
@@ -330,5 +344,97 @@ describe("CloudflareProvider — tunnel", () => {
 
     expect(api.tunnelConfig.ingress?.[0]?.service).toBe("http://theirs:80");
     expect(api.tunnelPuts).toEqual([]);
+  });
+});
+
+describe("CloudflareProvider — delete grace", () => {
+  const graceEnv = { DOCKROUTE_DELETE_GRACE_SECONDS: "60" };
+
+  test("an orphan is kept while it serves the grace window", async () => {
+    const api = new FakeCloudflareApi();
+    seedOwned(api, "restarting.example.com");
+    const provider = new CloudflareProvider(api, makeConfig(graceEnv));
+
+    await provider.sync(desired());
+
+    expect(api.find("z1", "A", "restarting.example.com")).toBeDefined();
+    expect(api.records.get("z1")).toHaveLength(2);
+  });
+
+  test("an orphan that comes back is never deleted", async () => {
+    const clock = fakeClock();
+    const api = new FakeCloudflareApi();
+    seedOwned(api, "restarting.example.com");
+    const provider = new CloudflareProvider(
+      api,
+      makeConfig(graceEnv),
+      new DeleteGrace(60, clock.now),
+    );
+
+    await provider.sync(desired());
+    clock.advance(30);
+    await provider.sync(desired({ records: [record("restarting.example.com")] }));
+    clock.advance(120);
+    await provider.sync(desired({ records: [record("restarting.example.com")] }));
+
+    expect(api.find("z1", "A", "restarting.example.com")).toBeDefined();
+  });
+
+  test("an orphan absent for the whole window is deleted with its TXT", async () => {
+    const clock = fakeClock();
+    const api = new FakeCloudflareApi();
+    seedOwned(api, "gone.example.com");
+    const provider = new CloudflareProvider(
+      api,
+      makeConfig(graceEnv),
+      new DeleteGrace(60, clock.now),
+    );
+
+    await provider.sync(desired());
+    expect(api.records.get("z1")).toHaveLength(2);
+
+    clock.advance(61);
+    await provider.sync(desired());
+
+    expect(api.records.get("z1")).toEqual([]);
+  });
+
+  test("the stale record of a hostname that moved to a tunnel is not held back", async () => {
+    const api = new FakeCloudflareApi();
+    seedOwned(api, "moving.example.com");
+    const provider = new CloudflareProvider(api, makeConfig({ ...tunnelEnv, ...graceEnv }));
+
+    await provider.sync(desired({ tunnelRoutes: [route("moving.example.com")] }));
+
+    expect(api.find("z1", "A", "moving.example.com")).toBeUndefined();
+    expect(api.find("z1", "CNAME", "moving.example.com")?.content).toBe(TUNNEL_DOMAIN);
+  });
+
+  test("the ingress rule survives with the deferred CNAME, then goes with it", async () => {
+    const clock = fakeClock();
+    const api = new FakeCloudflareApi();
+    seedOwned(api, "gone.example.com", {
+      type: "CNAME",
+      content: TUNNEL_DOMAIN,
+      proxied: true,
+      ttl: 1,
+    });
+    const rule = { hostname: "gone.example.com", service: "http://gone:80" };
+    api.tunnelConfig = { ingress: [rule, CATCH_ALL] };
+    const provider = new CloudflareProvider(
+      api,
+      makeConfig({ ...tunnelEnv, ...graceEnv }),
+      new DeleteGrace(60, clock.now),
+    );
+
+    await provider.sync(desired());
+    expect(api.tunnelConfig?.ingress).toEqual([rule, CATCH_ALL]);
+    expect(api.tunnelPuts).toEqual([]);
+
+    clock.advance(61);
+    await provider.sync(desired());
+
+    expect(api.records.get("z1")).toEqual([]);
+    expect(api.tunnelConfig?.ingress).toEqual([CATCH_ALL]);
   });
 });

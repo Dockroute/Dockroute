@@ -80,6 +80,7 @@ DOCKROUTE_DEFAULT_TARGET=192.168.1.10 bun start   # provider=log by default
 | `DOCKROUTE_RESYNC_SECONDS` | `60`                   | Interval of the periodic full reconcile |
 | `DOCKROUTE_OWNER_ID`       | `default`              | Ownership id — lets several instances share a zone safely |
 | `DOCKROUTE_POLICY`         | `sync`                 | `sync`, `upsert-only` or `create-only`  |
+| `DOCKROUTE_DELETE_GRACE_SECONDS` | `60`             | How long a record must stay gone before it is deleted (`0` = delete at once) |
 | `DOCKROUTE_TXT_PREFIX`     | `_dockroute-`          | Ownership TXT name prefix               |
 | `DOCKROUTE_DOMAIN_FILTER`  | —                      | Comma-separated zone allowlist          |
 | `CLOUDFLARE_API_TOKEN`     | —                      | Token with Zone→DNS→Edit (+ Account→Cloudflare Tunnel→Edit for tunnels) |
@@ -94,6 +95,11 @@ DOCKROUTE_DEFAULT_TARGET=192.168.1.10 bun start   # provider=log by default
   adopted — conflicts are logged and skipped.
 - Orphan cleanup (container gone → records removed) only happens under the
   default `sync` policy and only for records this instance owns.
+- Deletions wait out `DOCKROUTE_DELETE_GRACE_SECONDS` (default 60) of
+  continuous absence, so a container restart does not take the hostname down.
+  Creates and updates stay immediate: they are cheap and self-correcting,
+  while a deleted record leaves a failure cached far beyond the outage.
+  Raise it if your stacks pull images before starting.
 - Tunnel ingress rules that dockroute did not create are preserved verbatim;
   dockroute assumes it is the only automated writer for the tunnels it manages.
 

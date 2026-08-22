@@ -22,6 +22,12 @@ export interface MergeIngressInput {
   current: CfIngressRule[];
   desired: DesiredIngressRoute[];
   managedHostnames: Set<string>;
+  /**
+   * Managed hostnames that are no longer desired but whose DNS deletion is
+   * still serving its grace window. Their rule is kept verbatim so a restart
+   * never leaves the tunnel and the zone disagreeing about a hostname.
+   */
+  retainHostnames?: Set<string>;
   policy: Policy;
 }
 
@@ -38,6 +44,7 @@ export function mergeIngress({
   current,
   desired,
   managedHostnames,
+  retainHostnames = new Set(),
   policy,
 }: MergeIngressInput): MergeIngressResult {
   const last = current[current.length - 1];
@@ -59,7 +66,7 @@ export function mergeIngress({
     .map((d) => d.hostname);
   const wanted = desired.filter((d) => !unmanagedHostnames.has(d.hostname));
 
-  const managed = mergeManaged(existingManaged, wanted, policy);
+  const managed = mergeManaged(existingManaged, wanted, policy, retainHostnames);
   managed.sort((a, b) => (a.hostname ?? "").localeCompare(b.hostname ?? ""));
 
   if (existingManaged.length === 0 && managed.length === 0) {
@@ -80,6 +87,7 @@ function mergeManaged(
   existing: CfIngressRule[],
   wanted: DesiredIngressRoute[],
   policy: Policy,
+  retainHostnames: Set<string>,
 ): CfIngressRule[] {
   const existingByHostname = new Map(existing.map((r) => [r.hostname, r]));
   // Preserve extra per-rule settings (e.g. originRequest) when updating our rules.
@@ -88,14 +96,14 @@ function mergeManaged(
     hostname: d.hostname,
     service: d.service,
   }));
+  const wantedHostnames = new Set(wanted.map((d) => d.hostname));
+  const orphans = existing.filter((r) => !wantedHostnames.has(r.hostname as string));
 
   switch (policy) {
     case "sync":
-      return updated;
-    case "upsert-only": {
-      const wantedHostnames = new Set(wanted.map((d) => d.hostname));
-      return [...updated, ...existing.filter((r) => !wantedHostnames.has(r.hostname as string))];
-    }
+      return [...updated, ...orphans.filter((r) => retainHostnames.has(r.hostname as string))];
+    case "upsert-only":
+      return [...updated, ...orphans];
     case "create-only":
       return [...existing, ...updated.filter((r) => !existingByHostname.has(r.hostname))];
   }
