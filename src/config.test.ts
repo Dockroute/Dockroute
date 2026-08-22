@@ -26,6 +26,18 @@ describe("loadConfig", () => {
     );
   });
 
+  test("parses a valid resync interval", () => {
+    expect(loadConfig({ DOCKROUTE_RESYNC_SECONDS: "30" }).resyncSeconds).toBe(30);
+  });
+
+  test("rejects invalid resync intervals", () => {
+    for (const value of ["60s", "", "0", "-1"]) {
+      expect(() => loadConfig({ DOCKROUTE_RESYNC_SECONDS: value })).toThrow(
+        /Invalid DOCKROUTE_RESYNC_SECONDS/,
+      );
+    }
+  });
+
   test("parses the domain filter as a trimmed list", () => {
     const config = loadConfig({ DOCKROUTE_DOMAIN_FILTER: "example.com, example.org ," });
     expect(config.domainFilter).toEqual(["example.com", "example.org"]);

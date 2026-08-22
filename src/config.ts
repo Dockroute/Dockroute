@@ -36,11 +36,19 @@ export function loadConfig(env = process.env): Config {
     throw new Error("CLOUDFLARE_API_TOKEN is required when DOCKROUTE_PROVIDER=cloudflare");
   }
 
+  const resyncSecondsRaw = env.DOCKROUTE_RESYNC_SECONDS;
+  const resyncSeconds = Number(resyncSecondsRaw ?? 60);
+  if (!Number.isFinite(resyncSeconds) || resyncSeconds <= 0) {
+    throw new Error(
+      `Invalid DOCKROUTE_RESYNC_SECONDS "${resyncSecondsRaw}". Expected a number of seconds > 0.`,
+    );
+  }
+
   return {
     dockerSock: env.DOCKER_SOCK ?? "/var/run/docker.sock",
     provider,
     defaultTarget: env.DOCKROUTE_DEFAULT_TARGET,
-    resyncSeconds: Number(env.DOCKROUTE_RESYNC_SECONDS ?? 60),
+    resyncSeconds,
     ownerId: env.DOCKROUTE_OWNER_ID ?? "default",
     policy: policy as Policy,
     txtPrefix: env.DOCKROUTE_TXT_PREFIX ?? "_dockroute-",
