@@ -1,6 +1,7 @@
 export const POLICIES = ["sync", "upsert-only", "create-only"] as const;
 export type Policy = (typeof POLICIES)[number];
 
+const DEFAULT_RESYNC_SECONDS = 60;
 const DEFAULT_DELETE_GRACE_SECONDS = 60;
 
 export interface CloudflareConfig {
@@ -49,7 +50,12 @@ export function loadConfig(env = process.env): Config {
     dockerSock: env.DOCKER_SOCK ?? "/var/run/docker.sock",
     provider,
     defaultTarget: env.DOCKROUTE_DEFAULT_TARGET,
-    resyncSeconds: Number(env.DOCKROUTE_RESYNC_SECONDS ?? 60),
+    resyncSeconds: secondsFromEnv(
+      "DOCKROUTE_RESYNC_SECONDS",
+      env.DOCKROUTE_RESYNC_SECONDS,
+      DEFAULT_RESYNC_SECONDS,
+      1,
+    ),
     ownerId: env.DOCKROUTE_OWNER_ID ?? "default",
     policy: policy as Policy,
     deleteGraceSeconds: secondsFromEnv(
