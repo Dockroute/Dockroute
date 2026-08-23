@@ -42,6 +42,12 @@
           ]
         },
         {
+          "name": "DOCKROUTE_DELETE_GRACE_SECONDS",
+          "label": "Delete grace (seconds)",
+          "description": "Seconds a record must stay gone before DockRoute deletes it. Protects against container restarts; 0 deletes immediately.",
+          "default": "60"
+        },
+        {
           "name": "DOCKROUTE_DEFAULT_TARGET",
           "label": "Default target",
           "description": "Fallback record value (IP or CNAME target) when a container omits the dockroute.target label.",
