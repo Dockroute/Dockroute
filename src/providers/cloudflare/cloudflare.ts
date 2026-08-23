@@ -1,6 +1,7 @@
 import type { Config } from "../../config";
 import type { DesiredState, DnsRecord, TunnelRoute } from "../../core/types";
 import { type Provider, registerProvider } from "../provider";
+import { DeleteGrace } from "../registry/grace";
 import { parseOwnershipContent, parseTxtName } from "../registry/ownership";
 import { type Plan, planChanges, type RegistryRecord } from "../registry/planner";
 import {
@@ -28,6 +29,7 @@ export class CloudflareProvider implements Provider {
   constructor(
     private api: CloudflareApi,
     private config: Config,
+    private grace: DeleteGrace = new DeleteGrace(config.deleteGraceSeconds, config.txtPrefix),
   ) {}
 
   async sync(desired: DesiredState): Promise<void> {
@@ -48,17 +50,23 @@ export class CloudflareProvider implements Provider {
 
     const managedTunnelHostnames = new Set<string>();
     const conflictedHostnames = new Set<string>();
+    const deferredTunnelHostnames = new Set<string>();
 
     for (const zone of zones) {
       try {
         const actual = await this.fetchActual(zone.id);
-        const plan = planChanges({
-          desired: byZone.perZone.get(zone.id) ?? [],
-          actual: actual.map((e) => e.registry),
-          ownerId: this.config.ownerId,
-          txtPrefix: this.config.txtPrefix,
-          policy: this.config.policy,
-        });
+        const desiredInZone = byZone.perZone.get(zone.id) ?? [];
+        const { plan, deferred } = this.grace.apply(
+          planChanges({
+            desired: desiredInZone,
+            actual: actual.map((e) => e.registry),
+            ownerId: this.config.ownerId,
+            txtPrefix: this.config.txtPrefix,
+            policy: this.config.policy,
+          }),
+          zone.id,
+          new Set(desiredInZone.map((r) => r.hostname)),
+        );
         for (const c of plan.conflicts) {
           console.warn(`[cloudflare] conflict on ${c.type} ${c.hostname}: ${c.reason} — skipping`);
           conflictedHostnames.add(c.hostname);
@@ -67,6 +75,11 @@ export class CloudflareProvider implements Provider {
         if (tunnelDomain) {
           for (const h of ownedTunnelHostnames(actual, tunnelDomain, this.config)) {
             managedTunnelHostnames.add(h);
+          }
+          for (const record of deferred) {
+            if (record.type === "CNAME" && record.content === tunnelDomain) {
+              deferredTunnelHostnames.add(record.hostname);
+            }
           }
         }
       } catch (err) {
@@ -81,7 +94,7 @@ export class CloudflareProvider implements Provider {
       // managedTunnelHostnames holds only hostnames PROVEN ours via the TXT
       // registry before this run — a pre-existing ingress rule for a desired
       // hostname we do not own must surface as a conflict, never be replaced.
-      await this.syncTunnelIngress(routes, managedTunnelHostnames);
+      await this.syncTunnelIngress(routes, managedTunnelHostnames, deferredTunnelHostnames);
     }
   }
 
@@ -150,6 +163,7 @@ export class CloudflareProvider implements Provider {
   private async syncTunnelIngress(
     routes: TunnelRoute[],
     managedHostnames: Set<string>,
+    retainHostnames: Set<string>,
   ): Promise<void> {
     const { accountId, tunnelId } = this.config.cloudflare;
     if (!accountId || !tunnelId) return;
@@ -160,6 +174,9 @@ export class CloudflareProvider implements Provider {
         current: config.ingress ?? [],
         desired: routes.map((t) => ({ hostname: t.hostname, service: t.service })),
         managedHostnames,
+        // A hostname whose CNAME deletion is still serving its grace window
+        // keeps its ingress rule, so DNS and tunnel never disagree about it.
+        retainHostnames,
         policy: this.config.policy,
       });
       for (const hostname of merged.conflicts) {

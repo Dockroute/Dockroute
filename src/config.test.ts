@@ -11,7 +11,27 @@ describe("loadConfig", () => {
       txtPrefix: "_dockroute-",
       domainFilter: [],
       resyncSeconds: 60,
+      deleteGraceSeconds: 60,
     });
+  });
+
+  test("parses the delete grace, zero included", () => {
+    expect(loadConfig({ DOCKROUTE_DELETE_GRACE_SECONDS: "180" }).deleteGraceSeconds).toBe(180);
+    expect(loadConfig({ DOCKROUTE_DELETE_GRACE_SECONDS: "0" }).deleteGraceSeconds).toBe(0);
+  });
+
+  test("a blank delete grace means unset, not zero", () => {
+    for (const value of ["", "   "]) {
+      expect(loadConfig({ DOCKROUTE_DELETE_GRACE_SECONDS: value }).deleteGraceSeconds).toBe(60);
+    }
+  });
+
+  test("rejects a negative or non-numeric delete grace", () => {
+    for (const value of ["-1", "soon"]) {
+      expect(() => loadConfig({ DOCKROUTE_DELETE_GRACE_SECONDS: value })).toThrow(
+        /Invalid DOCKROUTE_DELETE_GRACE_SECONDS/,
+      );
+    }
   });
 
   test("accepts every valid policy", () => {
