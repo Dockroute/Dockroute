@@ -50,8 +50,14 @@ describe("loadConfig", () => {
     expect(loadConfig({ DOCKROUTE_RESYNC_SECONDS: "30" }).resyncSeconds).toBe(30);
   });
 
+  test("a blank resync interval means unset", () => {
+    for (const value of ["", "   "]) {
+      expect(loadConfig({ DOCKROUTE_RESYNC_SECONDS: value }).resyncSeconds).toBe(60);
+    }
+  });
+
   test("rejects invalid resync intervals", () => {
-    for (const value of ["60s", "", "0", "-1"]) {
+    for (const value of ["60s", "0", "-1", "0.5"]) {
       expect(() => loadConfig({ DOCKROUTE_RESYNC_SECONDS: value })).toThrow(
         /Invalid DOCKROUTE_RESYNC_SECONDS/,
       );
