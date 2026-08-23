@@ -1,4 +1,4 @@
-import { describe, expect, test } from "bun:test";
+import { afterEach, describe, expect, spyOn, test } from "bun:test";
 import { desiredFromContainer } from "./labels";
 import type { ContainerInfo } from "./types";
 
@@ -9,6 +9,13 @@ function container(labels: Record<string, string>): ContainerInfo {
 const empty = { records: [], tunnelRoutes: [] };
 
 describe("desiredFromContainer", () => {
+  let warnSpy: ReturnType<typeof spyOn> | undefined;
+
+  afterEach(() => {
+    warnSpy?.mockRestore();
+    warnSpy = undefined;
+  });
+
   test("ignores containers without dockroute.enabled", () => {
     expect(desiredFromContainer(container({}))).toEqual(empty);
     expect(desiredFromContainer(container({ "dockroute.hostname": "a.example.com" }))).toEqual(
@@ -17,6 +24,7 @@ describe("desiredFromContainer", () => {
   });
 
   test("builds an A record with defaults", () => {
+    warnSpy = spyOn(console, "warn").mockImplementation(() => {});
     const { records } = desiredFromContainer(
       container({ "dockroute.enabled": "true", "dockroute.hostname": "a.example.com" }),
       { defaultTarget: "192.168.1.10" },
@@ -30,6 +38,7 @@ describe("desiredFromContainer", () => {
         source: "abc123def4567890",
       },
     ]);
+    expect(warnSpy).not.toHaveBeenCalled();
   });
 
   test("supports multiple comma-separated hostnames", () => {
@@ -54,6 +63,22 @@ describe("desiredFromContainer", () => {
       }),
     ).records;
     expect(record).toMatchObject({ type: "CNAME", target: "origin.example.com", ttl: 60 });
+  });
+
+  test("warns and uses the default when an explicit ttl is invalid", () => {
+    warnSpy = spyOn(console, "warn").mockImplementation(() => {});
+    const [record] = desiredFromContainer(
+      container({
+        "dockroute.enabled": "true",
+        "dockroute.hostname": "a.example.com",
+        "dockroute.target": "10.0.0.1",
+        "dockroute.ttl": "5m",
+      }),
+    ).records;
+
+    expect(record?.ttl).toBe(300);
+    expect(warnSpy).toHaveBeenCalledTimes(1);
+    expect(warnSpy).toHaveBeenCalledWith('[labels] /whoami: invalid dockroute.ttl "5m", using 300');
   });
 
   test("skips when no target is resolvable or type is unsupported", () => {

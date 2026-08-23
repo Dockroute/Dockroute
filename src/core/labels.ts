@@ -94,14 +94,19 @@ function dnsState(
     return emptyDesiredState();
   }
 
-  const ttl = Number(labels[`${PREFIX}ttl`] ?? DEFAULT_TTL);
+  const rawTtl = labels[`${PREFIX}ttl`];
+  const parsedTtl = Number(rawTtl ?? DEFAULT_TTL);
+  const ttl = Number.isFinite(parsedTtl) && parsedTtl > 0 ? parsedTtl : DEFAULT_TTL;
+  if (rawTtl !== undefined && ttl !== parsedTtl) {
+    console.warn(`[labels] ${name}: invalid dockroute.ttl "${rawTtl}", using ${DEFAULT_TTL}`);
+  }
   const providerSpecific = providerHints(labels);
 
   const records: DnsRecord[] = hostnames.map((hostname) => ({
     hostname,
     type: rawType as RecordType,
     target,
-    ttl: Number.isFinite(ttl) && ttl > 0 ? ttl : DEFAULT_TTL,
+    ttl,
     source: container.Id,
     ...(providerSpecific ? { providerSpecific } : {}),
   }));
