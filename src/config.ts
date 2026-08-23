@@ -35,14 +35,6 @@ export function loadConfig(env = process.env): Config {
     throw new Error(`Invalid DOCKROUTE_POLICY "${policy}". Valid values: ${POLICIES.join(", ")}`);
   }
 
-  const rawGrace = env.DOCKROUTE_DELETE_GRACE_SECONDS;
-  const deleteGraceSeconds = Number(rawGrace ?? DEFAULT_DELETE_GRACE_SECONDS);
-  if (!Number.isFinite(deleteGraceSeconds) || deleteGraceSeconds < 0) {
-    throw new Error(
-      `Invalid DOCKROUTE_DELETE_GRACE_SECONDS "${rawGrace}". Expected a number of seconds >= 0.`,
-    );
-  }
-
   const provider = env.DOCKROUTE_PROVIDER ?? "log";
   const cloudflare: CloudflareConfig = {
     apiToken: env.CLOUDFLARE_API_TOKEN,
@@ -60,7 +52,12 @@ export function loadConfig(env = process.env): Config {
     resyncSeconds: Number(env.DOCKROUTE_RESYNC_SECONDS ?? 60),
     ownerId: env.DOCKROUTE_OWNER_ID ?? "default",
     policy: policy as Policy,
-    deleteGraceSeconds,
+    deleteGraceSeconds: secondsFromEnv(
+      "DOCKROUTE_DELETE_GRACE_SECONDS",
+      env.DOCKROUTE_DELETE_GRACE_SECONDS,
+      DEFAULT_DELETE_GRACE_SECONDS,
+      0,
+    ),
     txtPrefix: env.DOCKROUTE_TXT_PREFIX ?? "_dockroute-",
     domainFilter: (env.DOCKROUTE_DOMAIN_FILTER ?? "")
       .split(",")
@@ -68,4 +65,22 @@ export function loadConfig(env = process.env): Config {
       .filter(Boolean),
     cloudflare,
   };
+}
+
+/**
+ * Reads a numeric env var. A blank value means "not set": Portainer and Unraid
+ * submit a cleared optional field as an empty string, and that has to mean the
+ * default, never a fatal error. `min` is inclusive.
+ */
+function secondsFromEnv(
+  name: string,
+  raw: string | undefined,
+  fallback: number,
+  min: number,
+): number {
+  const value = raw?.trim() ? Number(raw) : fallback;
+  if (!Number.isFinite(value) || value < min) {
+    throw new Error(`Invalid ${name} "${raw}". Expected a number of seconds >= ${min}.`);
+  }
+  return value;
 }
