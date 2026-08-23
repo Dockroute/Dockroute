@@ -1,6 +1,8 @@
 export const POLICIES = ["sync", "upsert-only", "create-only"] as const;
 export type Policy = (typeof POLICIES)[number];
 
+const DEFAULT_DELETE_GRACE_SECONDS = 60;
+
 export interface CloudflareConfig {
   apiToken?: string;
   accountId?: string;
@@ -14,6 +16,13 @@ export interface Config {
   resyncSeconds: number;
   ownerId: string;
   policy: Policy;
+  /**
+   * How long a record must be continuously absent from the desired state
+   * before its deletion is executed. Protects against container restarts,
+   * where deleting the record costs far more than the outage itself.
+   * `0` deletes as soon as the container leaves the running set.
+   */
+  deleteGraceSeconds: number;
   txtPrefix: string;
   /** Optional allowlist of zones DockRoute may touch. Empty = all. */
   domainFilter: string[];
@@ -51,6 +60,12 @@ export function loadConfig(env = process.env): Config {
     resyncSeconds,
     ownerId: env.DOCKROUTE_OWNER_ID ?? "default",
     policy: policy as Policy,
+    deleteGraceSeconds: secondsFromEnv(
+      "DOCKROUTE_DELETE_GRACE_SECONDS",
+      env.DOCKROUTE_DELETE_GRACE_SECONDS,
+      DEFAULT_DELETE_GRACE_SECONDS,
+      0,
+    ),
     txtPrefix: env.DOCKROUTE_TXT_PREFIX ?? "_dockroute-",
     domainFilter: (env.DOCKROUTE_DOMAIN_FILTER ?? "")
       .split(",")
@@ -58,4 +73,22 @@ export function loadConfig(env = process.env): Config {
       .filter(Boolean),
     cloudflare,
   };
+}
+
+/**
+ * Reads a numeric env var. A blank value means "not set": Portainer and Unraid
+ * submit a cleared optional field as an empty string, and that has to mean the
+ * default, never a fatal error. `min` is inclusive.
+ */
+function secondsFromEnv(
+  name: string,
+  raw: string | undefined,
+  fallback: number,
+  min: number,
+): number {
+  const value = raw?.trim() ? Number(raw) : fallback;
+  if (!Number.isFinite(value) || value < min) {
+    throw new Error(`Invalid ${name} "${raw}". Expected a number of seconds >= ${min}.`);
+  }
+  return value;
 }

@@ -77,6 +77,37 @@ by the provider-agnostic planner (`src/providers/registry/planner.ts`):
 
 Conflicts (anything not owned) are never touched under any policy.
 
+## Delete grace
+
+Deleting a record is not the inverse of creating one. A create propagates in
+seconds and is self-correcting; a delete leaves a failure (Cloudflare error
+1016, a negative answer cached by every resolver that asked) that outlives the
+event by minutes. Meanwhile a container that is merely restarting drops out of
+`/containers/json` for a few seconds and looks exactly like a container that
+was removed for good.
+
+So deletions, and only deletions, have hysteresis
+(`src/providers/registry/grace.ts`): a record must be continuously absent from
+the desired state for `DOCKROUTE_DELETE_GRACE_SECONDS` (default 60) before the
+plan's delete is executed, and a record that comes back inside the window is
+never deleted at all. A hostname whose CNAME is still serving its window keeps
+its tunnel ingress rule verbatim, so DNS and tunnel never disagree.
+
+Because the window is measured from the first reconcile that *observed* the
+record as an orphan, orphans that are already there at startup are covered too
+— which is the common case of `docker compose up -d` recreating a whole stack
+and starting DockRoute before the app.
+
+The tracker is in memory and per process: losing it on a restart only reopens
+the window, never shortens it. Setting the variable to `0` restores immediate
+deletion.
+
+The trade-off is deliberate and asymmetric. Waiting too long leaves a record
+pointing at an origin that was intentionally removed, which fails softly and
+heals itself; deleting too early is a user-visible outage with a cached
+failure. DockRoute converges on the Docker state either way, bounded by the
+grace window instead of immediately.
+
 ## Cloudflare Tunnel (existing-tunnel model)
 
 DockRoute does **not** create tunnels or move traffic — you create the tunnel
@@ -139,6 +170,7 @@ services:
 | `DOCKROUTE_RESYNC_SECONDS` | `60`                   | Interval of the periodic full reconcile |
 | `DOCKROUTE_OWNER_ID`       | `default`              | Ownership id written into registry TXTs |
 | `DOCKROUTE_POLICY`         | `sync`                 | `sync`, `upsert-only` or `create-only`  |
+| `DOCKROUTE_DELETE_GRACE_SECONDS` | `60`             | Continuous absence required before a delete runs (`0` = immediate) |
 | `DOCKROUTE_TXT_PREFIX`     | `_dockroute-`          | Registry TXT name prefix                |
 | `DOCKROUTE_DOMAIN_FILTER`  | —                      | Comma-separated zone allowlist          |
 | `CLOUDFLARE_API_TOKEN`     | —                      | Required for `cloudflare`. Scopes: Zone → DNS → Edit; Account → Cloudflare Tunnel → Edit (tunnel only) |
@@ -164,6 +196,7 @@ src/
     registry/
       ownership.ts      TXT ownership format + naming (provider-agnostic)
       planner.ts        pure reconciliation planner: policies, conflicts, orphans
+      grace.ts          delete hysteresis: orphans must stay gone before removal
     cloudflare/
       api.ts            Cloudflare v4 wire client (wire types stay here — ACL)
       cloudflare.ts     provider: zones, planner execution, TTL normalization
@@ -175,6 +208,9 @@ src/
 - **Full-state sync, not incremental patches.** Every reconcile recomputes
   the complete desired set from the Docker API and syncs it. Simpler,
   self-healing, and events only decide *when* to reconcile, never *what*.
+- **Destructive operations get hysteresis, constructive ones do not.** The
+  desired state is still recomputed in full every time; the grace window is
+  applied to the *plan*, so convergence is bounded rather than immediate.
 - **Provider owns the diff, planner owns the rules.** The ownership/policy
   logic is provider-agnostic (`src/providers/registry/`); each provider maps
   its wire format at its own boundary and never leaks it into `src/core/`
