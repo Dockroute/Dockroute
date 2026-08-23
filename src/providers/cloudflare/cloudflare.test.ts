@@ -368,7 +368,7 @@ describe("CloudflareProvider — delete grace", () => {
     const provider = new CloudflareProvider(
       api,
       makeConfig(graceEnv),
-      new DeleteGrace(60, clock.now),
+      new DeleteGrace(60, "_dockroute-", clock.now),
     );
 
     await provider.sync(desired());
@@ -387,7 +387,7 @@ describe("CloudflareProvider — delete grace", () => {
     const provider = new CloudflareProvider(
       api,
       makeConfig(graceEnv),
-      new DeleteGrace(60, clock.now),
+      new DeleteGrace(60, "_dockroute-", clock.now),
     );
 
     await provider.sync(desired());
@@ -399,7 +399,7 @@ describe("CloudflareProvider — delete grace", () => {
     expect(api.records.get("z1")).toEqual([]);
   });
 
-  test("the stale record of a hostname that moved to a tunnel is not held back", async () => {
+  test("a hostname that moved to a tunnel drops its stale record and TXT at once", async () => {
     const api = new FakeCloudflareApi();
     seedOwned(api, "moving.example.com");
     const provider = new CloudflareProvider(api, makeConfig({ ...tunnelEnv, ...graceEnv }));
@@ -407,7 +407,9 @@ describe("CloudflareProvider — delete grace", () => {
     await provider.sync(desired({ tunnelRoutes: [route("moving.example.com")] }));
 
     expect(api.find("z1", "A", "moving.example.com")).toBeUndefined();
+    expect(api.find("z1", "TXT", "_dockroute-a.moving.example.com")).toBeUndefined();
     expect(api.find("z1", "CNAME", "moving.example.com")?.content).toBe(TUNNEL_DOMAIN);
+    expect(api.find("z1", "TXT", "_dockroute-cname.moving.example.com")).toBeDefined();
   });
 
   test("the ingress rule survives with the deferred CNAME, then goes with it", async () => {
@@ -424,7 +426,7 @@ describe("CloudflareProvider — delete grace", () => {
     const provider = new CloudflareProvider(
       api,
       makeConfig({ ...tunnelEnv, ...graceEnv }),
-      new DeleteGrace(60, clock.now),
+      new DeleteGrace(60, "_dockroute-", clock.now),
     );
 
     await provider.sync(desired());

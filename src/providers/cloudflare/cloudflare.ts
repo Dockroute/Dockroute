@@ -29,7 +29,7 @@ export class CloudflareProvider implements Provider {
   constructor(
     private api: CloudflareApi,
     private config: Config,
-    private grace: DeleteGrace = new DeleteGrace(config.deleteGraceSeconds),
+    private grace: DeleteGrace = new DeleteGrace(config.deleteGraceSeconds, config.txtPrefix),
   ) {}
 
   async sync(desired: DesiredState): Promise<void> {

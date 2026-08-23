@@ -1,3 +1,4 @@
+import { parseTxtName } from "./ownership";
 import type { Plan, RegistryRecord } from "./planner";
 
 /**
@@ -19,6 +20,7 @@ export class DeleteGrace {
 
   constructor(
     private graceSeconds: number,
+    private txtPrefix: string,
     private now: () => number = Date.now,
   ) {}
 
@@ -45,7 +47,7 @@ export class DeleteGrace {
       // desired is being replaced, not removed (a plain A record becoming a
       // tunnel CNAME, say), and holding its stale record back would only
       // block the replacement.
-      if (desiredHostnames.has(record.hostname)) {
+      if (desiredHostnames.has(this.trackedHostname(record))) {
         due.push(record);
         continue;
       }
@@ -74,6 +76,16 @@ export class DeleteGrace {
 
     this.prune(scope, planned);
     return { plan: { ...plan, deletes: due }, deferred };
+  }
+
+  /**
+   * The hostname a record keeps resolving. For an ownership TXT that is the
+   * data record it tracks, not its own `<prefix><type>.<hostname>` name, so a
+   * record and its companion always leave the window together.
+   */
+  private trackedHostname(record: RegistryRecord): string {
+    if (record.type !== "TXT") return record.hostname;
+    return parseTxtName(record.hostname, this.txtPrefix)?.hostname ?? record.hostname;
   }
 
   private prune(scope: string, planned: Set<string>): void {

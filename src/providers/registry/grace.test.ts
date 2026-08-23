@@ -3,6 +3,7 @@ import { DeleteGrace } from "./grace";
 import type { Plan, RegistryRecord } from "./planner";
 
 const START = 1_700_000_000_000;
+const PREFIX = "_dockroute-";
 
 function rec(hostname: string, over: Partial<RegistryRecord> = {}): RegistryRecord {
   return { hostname, type: "A", content: "10.0.0.1", ttl: 300, ...over };
@@ -26,7 +27,7 @@ const hostnames = (records: RegistryRecord[]) => records.map((r) => r.hostname);
 
 describe("DeleteGrace", () => {
   test("defers a delete the first time the record goes missing", () => {
-    const grace = new DeleteGrace(60, clock().now);
+    const grace = new DeleteGrace(60, PREFIX, clock().now);
     const result = grace.apply(plan([rec("gone.example.com")]), "z1");
 
     expect(result.plan.deletes).toEqual([]);
@@ -35,7 +36,7 @@ describe("DeleteGrace", () => {
 
   test("executes the delete once the window has fully elapsed", () => {
     const time = clock();
-    const grace = new DeleteGrace(60, time.now);
+    const grace = new DeleteGrace(60, PREFIX, time.now);
 
     grace.apply(plan([rec("gone.example.com")]), "z1");
     time.advance(59);
@@ -49,7 +50,7 @@ describe("DeleteGrace", () => {
 
   test("a record that reappears restarts the window from scratch", () => {
     const time = clock();
-    const grace = new DeleteGrace(60, time.now);
+    const grace = new DeleteGrace(60, PREFIX, time.now);
 
     grace.apply(plan([rec("flapping.example.com")]), "z1");
     time.advance(59);
@@ -61,7 +62,7 @@ describe("DeleteGrace", () => {
 
   test("a record and its ownership TXT leave the window together", () => {
     const time = clock();
-    const grace = new DeleteGrace(60, time.now);
+    const grace = new DeleteGrace(60, PREFIX, time.now);
     const orphan = [rec("gone.example.com"), rec("_dockroute-a.gone.example.com", { type: "TXT" })];
 
     expect(grace.apply(plan(orphan), "z1").deferred).toHaveLength(2);
@@ -71,7 +72,7 @@ describe("DeleteGrace", () => {
 
   test("a delete that failed at the provider is retried without a fresh window", () => {
     const time = clock();
-    const grace = new DeleteGrace(60, time.now);
+    const grace = new DeleteGrace(60, PREFIX, time.now);
 
     grace.apply(plan([rec("gone.example.com")]), "z1");
     time.advance(61);
@@ -82,7 +83,7 @@ describe("DeleteGrace", () => {
 
   test("windows are tracked per scope", () => {
     const time = clock();
-    const grace = new DeleteGrace(60, time.now);
+    const grace = new DeleteGrace(60, PREFIX, time.now);
 
     grace.apply(plan([rec("gone.example.com")]), "z1");
     time.advance(61);
@@ -93,7 +94,7 @@ describe("DeleteGrace", () => {
 
   test("pruning one scope leaves the others untouched", () => {
     const time = clock();
-    const grace = new DeleteGrace(60, time.now);
+    const grace = new DeleteGrace(60, PREFIX, time.now);
 
     grace.apply(plan([rec("gone.example.com")]), "z1");
     time.advance(61);
@@ -103,7 +104,7 @@ describe("DeleteGrace", () => {
   });
 
   test("a record whose hostname is still desired is deleted at once", () => {
-    const grace = new DeleteGrace(60, clock().now);
+    const grace = new DeleteGrace(60, PREFIX, clock().now);
     const result = grace.apply(
       plan([rec("switching.example.com")]),
       "z1",
@@ -114,8 +115,26 @@ describe("DeleteGrace", () => {
     expect(result.deferred).toEqual([]);
   });
 
+  test("a companion TXT leaves with the record it tracks, not on its own name", () => {
+    const grace = new DeleteGrace(60, PREFIX, clock().now);
+    const result = grace.apply(
+      plan([
+        rec("switching.example.com"),
+        rec("_dockroute-a.switching.example.com", { type: "TXT" }),
+      ]),
+      "z1",
+      new Set(["switching.example.com"]),
+    );
+
+    expect(hostnames(result.plan.deletes)).toEqual([
+      "switching.example.com",
+      "_dockroute-a.switching.example.com",
+    ]);
+    expect(result.deferred).toEqual([]);
+  });
+
   test("a grace of zero passes the plan straight through", () => {
-    const grace = new DeleteGrace(0, clock().now);
+    const grace = new DeleteGrace(0, PREFIX, clock().now);
     const result = grace.apply(plan([rec("gone.example.com")]), "z1");
 
     expect(hostnames(result.plan.deletes)).toEqual(["gone.example.com"]);
@@ -123,7 +142,7 @@ describe("DeleteGrace", () => {
   });
 
   test("creates, updates and conflicts are never touched", () => {
-    const grace = new DeleteGrace(60, clock().now);
+    const grace = new DeleteGrace(60, PREFIX, clock().now);
     const input: Plan = {
       creates: [rec("new.example.com")],
       updates: [rec("changed.example.com")],
