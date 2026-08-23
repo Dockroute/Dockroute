@@ -1,3 +1,4 @@
+import { isIP, isIPv4, isIPv6 } from "node:net";
 import type { ContainerInfo, DesiredState, DnsRecord, RecordType } from "./types";
 
 const PREFIX = "dockroute.";
@@ -93,6 +94,13 @@ function dnsState(
     console.warn(`[labels] ${name}: no dockroute.target and no default target, skipping`);
     return emptyDesiredState();
   }
+  const type = rawType as RecordType;
+  if (!isValidTarget(type, target)) {
+    console.warn(
+      `[labels] ${name}: dockroute.target "${target}" is not a valid ${targetRequirement(type)}, skipping`,
+    );
+    return emptyDesiredState();
+  }
 
   const rawTtl = labels[`${PREFIX}ttl`];
   const parsedTtl = Number(rawTtl ?? DEFAULT_TTL);
@@ -104,13 +112,35 @@ function dnsState(
 
   const records: DnsRecord[] = hostnames.map((hostname) => ({
     hostname,
-    type: rawType as RecordType,
+    type,
     target,
     ttl,
     source: container.Id,
     ...(providerSpecific ? { providerSpecific } : {}),
   }));
   return { records, tunnelRoutes: [] };
+}
+
+function isValidTarget(type: RecordType, target: string): boolean {
+  switch (type) {
+    case "A":
+      return isIPv4(target);
+    case "AAAA":
+      return isIPv6(target);
+    case "CNAME":
+      return target.trim().length > 0 && isIP(target.trim()) === 0;
+  }
+}
+
+function targetRequirement(type: RecordType): string {
+  switch (type) {
+    case "A":
+      return "IPv4 address for an A record";
+    case "AAAA":
+      return "IPv6 address for an AAAA record";
+    case "CNAME":
+      return "hostname for a CNAME record";
+  }
 }
 
 function isValidServiceUrl(service: string): boolean {
