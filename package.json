@@ -1,6 +1,6 @@
 {
   "name": "dockroute",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "External-DNS for plain Docker hosts: registers DNS records from container labels",
   "license": "MIT",
   "module": "src/index.ts",
