@@ -1,3 +1,9 @@
+## [0.4.0](https://github.com/Dockroute/Dockroute/compare/v0.3.2...v0.4.0) (2026-08-24)
+
+### Features
+
+* **labels:** validate DNS record targets ([#42](https://github.com/Dockroute/Dockroute/issues/42)) ([5213098](https://github.com/Dockroute/Dockroute/commit/5213098c6a8a65ae17bba02be497870dea2caead)), closes [#32](https://github.com/Dockroute/Dockroute/issues/32)
+
 ## [0.3.2](https://github.com/Dockroute/Dockroute/compare/v0.3.1...v0.3.2) (2026-08-24)
 
 ### Bug Fixes
