@@ -89,7 +89,7 @@ function dnsState(
     return emptyDesiredState();
   }
 
-  const target = labels[`${PREFIX}target`] ?? opts.defaultTarget;
+  const target = labels[`${PREFIX}target`]?.trim() || opts.defaultTarget;
   if (!target) {
     console.warn(`[labels] ${name}: no dockroute.target and no default target, skipping`);
     return emptyDesiredState();
@@ -128,7 +128,7 @@ function isValidTarget(type: RecordType, target: string): boolean {
     case "AAAA":
       return isIPv6(target);
     case "CNAME":
-      return target.trim().length > 0 && isIP(target.trim()) === 0;
+      return isIP(target) === 0;
   }
 }
 
@@ -139,7 +139,7 @@ function targetRequirement(type: RecordType): string {
     case "AAAA":
       return "IPv6 address for an AAAA record";
     case "CNAME":
-      return "hostname for a CNAME record";
+      return "hostname for a CNAME record (use an A or AAAA record for an IP)";
   }
 }
 

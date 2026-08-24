@@ -90,9 +90,8 @@ describe("desiredFromContainer", () => {
     for (const [type, target, expected] of [
       ["A", "2001:db8::1", "IPv4 address for an A record"],
       ["AAAA", "192.0.2.1", "IPv6 address for an AAAA record"],
-      ["CNAME", "192.0.2.1", "hostname for a CNAME record"],
-      ["CNAME", "2001:db8::1", "hostname for a CNAME record"],
-      ["CNAME", "   ", "hostname for a CNAME record"],
+      ["CNAME", "192.0.2.1", "hostname for a CNAME record (use an A or AAAA record for an IP)"],
+      ["CNAME", "2001:db8::1", "hostname for a CNAME record (use an A or AAAA record for an IP)"],
     ] as const) {
       expect(
         desiredFromContainer(
@@ -108,6 +107,57 @@ describe("desiredFromContainer", () => {
         `[labels] /whoami: dockroute.target "${target}" is not a valid ${expected}, skipping`,
       );
     }
+  });
+
+  test("trims explicit targets before validation and storage", () => {
+    for (const [type, target, expectedTarget] of [
+      ["A", " 192.0.2.1 ", "192.0.2.1"],
+      ["AAAA", " 2001:db8::1 ", "2001:db8::1"],
+      ["CNAME", " origin.example.com ", "origin.example.com"],
+    ] as const) {
+      const { records } = desiredFromContainer(
+        container({
+          "dockroute.enabled": "true",
+          "dockroute.hostname": "app.example.com",
+          "dockroute.type": type,
+          "dockroute.target": target,
+        }),
+      );
+      expect(records[0]).toMatchObject({ type, target: expectedTarget });
+    }
+  });
+
+  test("treats a blank explicit target as missing", () => {
+    warnSpy = spyOn(console, "warn").mockImplementation(() => {});
+
+    const withDefault = desiredFromContainer(
+      container({
+        "dockroute.enabled": "true",
+        "dockroute.hostname": "app.example.com",
+        "dockroute.type": "CNAME",
+        "dockroute.target": "   ",
+      }),
+      { defaultTarget: "origin.example.com" },
+    );
+    expect(withDefault.records[0]).toMatchObject({
+      type: "CNAME",
+      target: "origin.example.com",
+    });
+    expect(warnSpy).not.toHaveBeenCalled();
+
+    expect(
+      desiredFromContainer(
+        container({
+          "dockroute.enabled": "true",
+          "dockroute.hostname": "app.example.com",
+          "dockroute.type": "CNAME",
+          "dockroute.target": "   ",
+        }),
+      ),
+    ).toEqual(empty);
+    expect(warnSpy).toHaveBeenLastCalledWith(
+      "[labels] /whoami: no dockroute.target and no default target, skipping",
+    );
   });
 
   test("validates an inherited default target", () => {
