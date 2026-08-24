@@ -53,6 +53,21 @@ jobs:
     needs: verify
     permissions:
       contents: read
+    env:
+      # Single source of truth: the dry run that guards the notes and the real
+      # release must resolve the exact same plugin tree, or the guard proves
+      # nothing about what ships.
+      #
+      # Stay on the conventionalcommits 9.x line. The 10.x line requires
+      # conventional-changelog-writer@9, while semantic-release 25 resolves
+      # writer 8 via @semantic-release/release-notes-generator@14 (^8.0.0).
+      # On 10.2.x/10.3.x that mismatch renders empty release notes without an
+      # error, which is how v0.1.1 through v0.3.1 shipped with no body (#44).
+      # Move past 9.x only once release-notes-generator depends on writer@9.
+      RELEASE_PLUGINS: |
+        @semantic-release/changelog@7
+        @semantic-release/git@11
+        conventional-changelog-conventionalcommits@9.3.1
     outputs:
       published: ${{ steps.semantic.outputs.new_release_published }}
       version: ${{ steps.semantic.outputs.new_release_version }}
@@ -72,18 +87,39 @@ jobs:
           fetch-depth: 0
           token: ${{ steps.app-token.outputs.token }}
 
+      # Empty release notes fail nothing on their own, so they went unnoticed for
+      # six releases. Generating them once in dry-run mode turns that into a red
+      # build before anything is tagged or published.
+      - name: Dry run to generate the release notes
+        id: dry_run
+        uses: cycjimmy/semantic-release-action@v6
+        with:
+          dry_run: true
+          extra_plugins: ${{ env.RELEASE_PLUGINS }}
+        env:
+          GITHUB_TOKEN: ${{ steps.app-token.outputs.token }}
+
+      - name: Fail on empty release notes
+        if: steps.dry_run.outputs.new_release_published == 'true'
+        env:
+          # Read through the environment, never interpolated into the script.
+          NOTES: ${{ steps.dry_run.outputs.new_release_notes }}
+        run: |
+          # Line 1 is the version header, which renders even when every commit
+          # section is missing. The body is what proves the writer ran.
+          if [ -z "$(printf '%s' "$NOTES" | tail -n +2 | tr -d '[:space:]')" ]; then
+            echo "::error::semantic-release generated release notes with no body. \
+          The conventionalcommits preset and conventional-changelog-writer are \
+          probably out of step again; see issue #44."
+            exit 1
+          fi
+          echo "Release notes carry a body."
+
       - name: Run semantic-release
         id: semantic
         uses: cycjimmy/semantic-release-action@v6
         with:
-          # Exact pins: the preset reaches @conventional-changelog/template through a
-          # caret range, and 1.4.0 requires conventional-changelog-writer@9, while
-          # semantic-release 25 still bundles writer 8. Unpin once it ships writer@9.
-          extra_plugins: |
-            @semantic-release/changelog@7
-            @semantic-release/git@11
-            conventional-changelog-conventionalcommits@10.3.0
-            @conventional-changelog/template@1.3.0
+          extra_plugins: ${{ env.RELEASE_PLUGINS }}
         env:
           GITHUB_TOKEN: ${{ steps.app-token.outputs.token }}
 
