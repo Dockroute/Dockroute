@@ -65,6 +65,118 @@ describe("desiredFromContainer", () => {
     expect(record).toMatchObject({ type: "CNAME", target: "origin.example.com", ttl: 60 });
   });
 
+  test("validates targets against their record type", () => {
+    for (const [type, target] of [
+      ["A", "192.0.2.1"],
+      ["AAAA", "2001:db8::1"],
+      ["CNAME", "origin.example.com"],
+    ] as const) {
+      const { records } = desiredFromContainer(
+        container({
+          "dockroute.enabled": "true",
+          "dockroute.hostname": "app.example.com",
+          "dockroute.type": type,
+          "dockroute.target": target,
+        }),
+      );
+      expect(records).toHaveLength(1);
+      expect(records[0]).toMatchObject({ type, target });
+    }
+  });
+
+  test("skips targets that do not match their record type", () => {
+    warnSpy = spyOn(console, "warn").mockImplementation(() => {});
+
+    for (const [type, target, expected] of [
+      ["A", "2001:db8::1", "IPv4 address for an A record"],
+      ["AAAA", "192.0.2.1", "IPv6 address for an AAAA record"],
+      ["CNAME", "192.0.2.1", "hostname for a CNAME record (use an A or AAAA record for an IP)"],
+      ["CNAME", "2001:db8::1", "hostname for a CNAME record (use an A or AAAA record for an IP)"],
+    ] as const) {
+      expect(
+        desiredFromContainer(
+          container({
+            "dockroute.enabled": "true",
+            "dockroute.hostname": "app.example.com",
+            "dockroute.type": type,
+            "dockroute.target": target,
+          }),
+        ),
+      ).toEqual(empty);
+      expect(warnSpy).toHaveBeenLastCalledWith(
+        `[labels] /whoami: dockroute.target "${target}" is not a valid ${expected}, skipping`,
+      );
+    }
+  });
+
+  test("trims explicit targets before validation and storage", () => {
+    for (const [type, target, expectedTarget] of [
+      ["A", " 192.0.2.1 ", "192.0.2.1"],
+      ["AAAA", " 2001:db8::1 ", "2001:db8::1"],
+      ["CNAME", " origin.example.com ", "origin.example.com"],
+    ] as const) {
+      const { records } = desiredFromContainer(
+        container({
+          "dockroute.enabled": "true",
+          "dockroute.hostname": "app.example.com",
+          "dockroute.type": type,
+          "dockroute.target": target,
+        }),
+      );
+      expect(records[0]).toMatchObject({ type, target: expectedTarget });
+    }
+  });
+
+  test("treats a blank explicit target as missing", () => {
+    warnSpy = spyOn(console, "warn").mockImplementation(() => {});
+
+    const withDefault = desiredFromContainer(
+      container({
+        "dockroute.enabled": "true",
+        "dockroute.hostname": "app.example.com",
+        "dockroute.type": "CNAME",
+        "dockroute.target": "   ",
+      }),
+      { defaultTarget: "origin.example.com" },
+    );
+    expect(withDefault.records[0]).toMatchObject({
+      type: "CNAME",
+      target: "origin.example.com",
+    });
+    expect(warnSpy).not.toHaveBeenCalled();
+
+    expect(
+      desiredFromContainer(
+        container({
+          "dockroute.enabled": "true",
+          "dockroute.hostname": "app.example.com",
+          "dockroute.type": "CNAME",
+          "dockroute.target": "   ",
+        }),
+      ),
+    ).toEqual(empty);
+    expect(warnSpy).toHaveBeenLastCalledWith(
+      "[labels] /whoami: no dockroute.target and no default target, skipping",
+    );
+  });
+
+  test("validates an inherited default target", () => {
+    warnSpy = spyOn(console, "warn").mockImplementation(() => {});
+    expect(
+      desiredFromContainer(
+        container({
+          "dockroute.enabled": "true",
+          "dockroute.hostname": "app.example.com",
+          "dockroute.type": "AAAA",
+        }),
+        { defaultTarget: "192.0.2.1" },
+      ),
+    ).toEqual(empty);
+    expect(warnSpy).toHaveBeenCalledWith(
+      '[labels] /whoami: dockroute.target "192.0.2.1" is not a valid IPv6 address for an AAAA record, skipping',
+    );
+  });
+
   test("warns and uses the default when an explicit ttl is invalid", () => {
     warnSpy = spyOn(console, "warn").mockImplementation(() => {});
     const [record] = desiredFromContainer(
@@ -132,7 +244,7 @@ describe("desiredFromContainer", () => {
         "dockroute.enabled": "true",
         "dockroute.hostname": "a.example.com",
         "dockroute.tunnel.service": "https://whoami:443",
-        "dockroute.type": "A",
+        "dockroute.type": "AAAA",
         "dockroute.target": "10.0.0.1",
       }),
     );

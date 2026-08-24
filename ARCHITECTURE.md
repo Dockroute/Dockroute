@@ -143,7 +143,7 @@ ingress list):
 | `dockroute.enabled`          | yes      | —                          | `true` opts the container in                 |
 | `dockroute.hostname`         | yes      | —                          | FQDN(s), comma-separated                     |
 | `dockroute.type`             | no       | `A`                        | `A`, `AAAA` or `CNAME`                       |
-| `dockroute.target`           | no       | `DOCKROUTE_DEFAULT_TARGET` | Record value (IP or CNAME target)            |
+| `dockroute.target`           | no       | `DOCKROUTE_DEFAULT_TARGET` | Record value; must match `dockroute.type` (IPv4 / IPv6 / hostname) |
 | `dockroute.ttl`              | no       | `300`                      | Record TTL in seconds                        |
 | `dockroute.tunnel.service`   | no       | —                          | Origin URL (`http://svc:port`); switches the container to tunnel publishing |
 | `dockroute.cloudflare.proxied` | no     | `false`                    | Serve plain records through Cloudflare's proxy |
