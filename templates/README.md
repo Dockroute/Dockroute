@@ -62,6 +62,6 @@ Validate locally from a checkout of that repository:
 ```sh
 cp -r templates/casaos/dockroute/. <appstore>/Apps/DockRoute/
 cd <appstore>
-python3 .github/actions/validate-compose/scripts/validate_compose.py --app-path DockRoute
+python3 .github/actions/validate-compose/scripts/validate_compose.py --app-path DockRoute --report-json report.json
 ./scripts/build_dist.sh
 ```
