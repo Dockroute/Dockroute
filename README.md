@@ -103,6 +103,37 @@ DOCKROUTE_DEFAULT_TARGET=192.168.1.10 bun start   # provider=log by default
 - Tunnel ingress rules that dockroute did not create are preserved verbatim;
   dockroute assumes it is the only automated writer for the tunnels it manages.
 
+## Troubleshooting
+
+DockRoute skips a misconfigured or conflicting entry instead of stopping the
+whole reconcile. Match the warning in `docker logs dockroute` to the table
+below, fix that entry, and the next reconcile will try it again.
+
+| Log message | What it means | What to do |
+| ----------- | ------------- | ---------- |
+| `[labels] <container>: dockroute.enabled but no dockroute.hostname, skipping` | The container opted in without a usable hostname. | Add a non-empty `dockroute.hostname` label. |
+| `[labels] <container>: dockroute.tunnel.service set, ignoring dockroute.type/dockroute.target` | Tunnel publishing is enabled, so the plain-record type and target labels are unused. | Remove `dockroute.type` and `dockroute.target`, or remove `dockroute.tunnel.service` if a plain DNS record was intended. |
+| `[labels] <container>: invalid dockroute.tunnel.service "<service>" (expected http://, https://, tcp://, ssh://), skipping` | The tunnel origin is not a valid URL with a supported scheme. | Set `dockroute.tunnel.service` to a complete `http://`, `https://`, `tcp://` or `ssh://` URL. |
+| `[labels] <container>: unsupported record type "<type>", skipping` | `dockroute.type` is not supported. | Set it to `A`, `AAAA` or `CNAME`. |
+| `[labels] <container>: no dockroute.target and no default target, skipping` | A plain DNS record has no target. | Add `dockroute.target` or set `DOCKROUTE_DEFAULT_TARGET`. |
+| `[labels] <container>: invalid dockroute.ttl "<ttl>", using 300` | The TTL is not a positive number, so DockRoute falls back to 300 seconds. | Set `dockroute.ttl` to a positive numeric value, or omit it to use the default. |
+| `[reconciler] duplicate desired entry <type>:<hostname>: first container wins, skipping entry from <source>` | More than one container claims the same hostname and record type. | Keep that claim on one container only; the first container in the reconcile wins. |
+| `[reconciler] duplicate hostname <hostname>: already published via tunnel, skipping <type> record from <source>` | The same hostname is requested as both a tunnel route and a plain DNS record. | Choose one publication method and remove the duplicate claim; the tunnel route wins the reconcile. |
+| `[cloudflare] <hostname>: no matching zone, skipping` | None of the Cloudflare zones visible after `DOCKROUTE_DOMAIN_FILTER` matches the hostname. | Check the hostname, `DOCKROUTE_DOMAIN_FILTER`, and that the API token can access the intended zone. |
+| `[cloudflare] conflict on <type> <hostname>: <reason> — skipping` | A pre-existing DNS record or ownership TXT proves the record is unmanaged or belongs to another owner. | Resolve the pre-existing record or ownership TXT deliberately: remove it if safe so DockRoute can recreate it, or use the owning DockRoute instance/owner id. Do not weaken the ownership check. |
+| `[cloudflare] <N> tunnel route(s) requested but CLOUDFLARE_ACCOUNT_ID/CLOUDFLARE_TUNNEL_ID are not set — skipping tunnel sync` | Tunnel labels are present but DockRoute cannot identify the Cloudflare account and tunnel. | Set both `CLOUDFLARE_ACCOUNT_ID` and `CLOUDFLARE_TUNNEL_ID`, or remove the tunnel labels. |
+| `[cloudflare] tunnel route <hostname>: an unmanaged ingress rule claims this hostname — skipping` | The existing tunnel configuration already has an ingress rule for that hostname that DockRoute cannot prove it manages. | Remove or rename the pre-existing rule if it is safe to do so, or stop asking DockRoute to publish the same hostname. |
+
+Ownership conflicts are a safety feature, not an adoption failure. In
+particular, a data record with no DockRoute ownership TXT, or a record/TXT
+owned by a different `DOCKROUTE_OWNER_ID`, is skipped by design. A dangling
+ownership TXT from another owner is treated the same way. Resolve the existing
+record or ownership deliberately; do not bypass the ownership checks.
+
+Docker socket preflight errors already include their remedy in the error text.
+If the socket is missing, is not a Unix socket, or cannot be read, follow the
+mount, `DOCKER_SOCK`, or group-access instruction printed with that error.
+
 ## Development
 
 ```sh
