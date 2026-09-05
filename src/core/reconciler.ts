@@ -1,4 +1,5 @@
 import type { DockerClient } from "../docker/client";
+import { touchHeartbeat } from "../health";
 import type { Provider } from "../providers/provider";
 import { desiredFromContainer, type ParseOptions } from "./labels";
 import type { DesiredState, DnsRecord, TunnelRoute } from "./types";
@@ -30,6 +31,7 @@ export class Reconciler {
         const containers = await this.docker.listRunningContainers();
         const perContainer = containers.map((c) => desiredFromContainer(c, this.parseOpts));
         await this.provider.sync(mergeDesired(perContainer));
+        await touchHeartbeat();
       } while (this.pending);
     } catch (err) {
       console.error("[reconciler] reconcile failed:", err);

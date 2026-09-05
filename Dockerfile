@@ -19,3 +19,9 @@ COPY --chmod=755 docker-entrypoint.sh /docker-entrypoint.sh
 # (whatever GID the host uses) and drops to it before exec'ing the app.
 ENTRYPOINT ["/docker-entrypoint.sh"]
 CMD ["bun", "run", "src/index.ts"]
+
+# Confirms the reconcile loop is actually progressing (Docker socket
+# reachable, provider sync succeeding), not just that the process is alive.
+# start-period covers the initial container list + first sync.
+HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
+  CMD ["bun", "run", "src/healthcheck.ts"]

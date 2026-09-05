@@ -86,6 +86,31 @@ DOCKROUTE_DEFAULT_TARGET=192.168.1.10 bun start   # provider=log by default
 | `CLOUDFLARE_API_TOKEN`     | —                      | Token with Zone→DNS→Edit (+ Account→Cloudflare Tunnel→Edit for tunnels) |
 | `CLOUDFLARE_ACCOUNT_ID`    | —                      | For tunnel publishing                   |
 | `CLOUDFLARE_TUNNEL_ID`     | —                      | For tunnel publishing (existing tunnel, you run `cloudflared`) |
+| `DOCKROUTE_HEARTBEAT_PATH` | `/tmp/dockroute-heartbeat` | Where the reconcile loop writes its liveness heartbeat (read by the image's `HEALTHCHECK`) |
+
+## Health check
+
+The image ships a Docker `HEALTHCHECK` (`bun run src/healthcheck.ts`): every
+successful reconcile touches a heartbeat file, and the check fails if it goes
+stale for longer than `3 × DOCKROUTE_RESYNC_SECONDS` (minimum 90s). That
+means `docker ps` / `docker inspect` — and orchestrators that watch container
+health — report `unhealthy` when the Docker socket goes unreachable or the
+provider keeps failing to sync, not just when the process itself crashes.
+
+No extra configuration is needed; running behind `docker compose` or
+CasaOS/Arcane/Portainer picks it up automatically from the image. Bring your
+own `healthcheck:` block only if you want different thresholds:
+
+```yaml
+services:
+  dockroute:
+    image: ghcr.io/dockroute/dockroute:latest
+    healthcheck:
+      interval: 30s
+      timeout: 10s
+      start_period: 30s
+      retries: 3
+```
 
 ## Safety model
 
