@@ -1,3 +1,9 @@
+## [0.5.1](https://github.com/Dockroute/Dockroute/compare/v0.5.0...v0.5.1) (2026-09-16)
+
+### Bug Fixes
+
+* **deps:** bump oven/bun from 1.4.0 to 1.4.2 ([#54](https://github.com/Dockroute/Dockroute/issues/54)) ([2722601](https://github.com/Dockroute/Dockroute/commit/2722601d449d8edeccb5e14b859f119be90a3d8e))
+
 ## [0.5.0](https://github.com/Dockroute/Dockroute/compare/v0.4.0...v0.5.0) (2026-09-05)
 
 ### Features
