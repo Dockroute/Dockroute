@@ -15,8 +15,12 @@ reproduce and the impact you foresee.
 
 ## Scope notes
 
-- DockRoute needs read-only access to the Docker socket (`:ro` mount) and a
-  DNS provider token. Grant the token the minimum scopes documented in the
+- DockRoute needs access to the Docker socket and a DNS provider token.
+  It only sends `GET` requests to `/_ping`, `/containers/json` and `/events`.
+  Note that a `:ro` socket mount does **not** make the Docker API read-only:
+  whoever can open the socket can call any endpoint, so treat socket access as
+  privileged. Restricting access to only these endpoints is tracked in #52.
+- Grant the DNS provider token the minimum scopes documented in the
   README (Zone → DNS → Edit; Account → Cloudflare Tunnel → Edit only when
   using tunnels).
 - DockRoute never stores credentials; they are read from environment
