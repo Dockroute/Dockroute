@@ -19,7 +19,7 @@ Docs: https://www.dockroute.dev</Overview>
   <Icon>https://github.com/Dockroute.png</Icon>
   <TemplateURL>https://raw.githubusercontent.com/Dockroute/unraid-templates/main/dockroute.xml</TemplateURL>
 
-  <Config Name="Docker socket" Target="/var/run/docker.sock" Default="/var/run/docker.sock" Mode="ro" Description="Docker Engine socket (read-only). DockRoute only listens to events and lists containers." Type="Path" Display="advanced" Required="true" Mask="false">/var/run/docker.sock</Config>
+  <Config Name="Docker socket" Target="/var/run/docker.sock" Default="/var/run/docker.sock" Mode="ro" Description="Docker Engine socket. DockRoute only sends GET requests to /_ping, /containers/json and /events; a :ro mount does not make the API read-only, see https://github.com/Dockroute/Dockroute/blob/main/SECURITY.md." Type="Path" Display="advanced" Required="true" Mask="false">/var/run/docker.sock</Config>
   <Config Name="Provider" Target="DOCKROUTE_PROVIDER" Default="log" Mode="" Description="DNS provider: 'log' (dry run, prints desired state, no credentials needed) or 'cloudflare'." Type="Variable" Display="always" Required="true" Mask="false">log</Config>
   <Config Name="Owner ID" Target="DOCKROUTE_OWNER_ID" Default="default" Mode="" Description="Ownership id written to companion TXT records; lets several DockRoute instances share a zone safely." Type="Variable" Display="always" Required="false" Mask="false">default</Config>
   <Config Name="Sync policy" Target="DOCKROUTE_POLICY" Default="sync" Mode="" Description="sync = create/update/delete owned records; upsert-only = never delete; create-only = never update or delete." Type="Variable" Display="always" Required="false" Mask="false">sync</Config>
