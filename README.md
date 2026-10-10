@@ -51,6 +51,13 @@ services:
     # grants it to the app user and drops privileges before starting.
 ```
 
+> **Note on `:ro`:** mounting the socket read-only only stops the container from
+> replacing the socket file. It does **not** make the Docker API read-only: any
+> process that can open the socket can still call every endpoint (create, exec,
+> delete…). DockRoute itself only issues `GET` requests to three endpoints:
+> `/_ping`, `/containers/json` and `/events` (see [#52](https://github.com/Dockroute/Dockroute/issues/52)
+> for restricting access to just these).
+
 Or start with the zero-credential dry run:
 
 ```sh
