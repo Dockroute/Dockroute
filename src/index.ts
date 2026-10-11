@@ -1,6 +1,7 @@
 import { loadConfig } from "./config";
 import { Reconciler } from "./core/reconciler";
 import { DockerClient } from "./docker/client";
+import { describeDockerEndpoint } from "./docker/endpoint";
 import { diagnoseSocketAccess } from "./docker/preflight";
 import { Watcher } from "./docker/watcher";
 import { createProvider } from "./providers/provider";
@@ -8,16 +9,18 @@ import "./providers/log";
 import "./providers/cloudflare/cloudflare";
 
 const config = loadConfig();
-console.log(`dockroute starting (provider=${config.provider}, sock=${config.dockerSock})`);
+const dockerHost = describeDockerEndpoint(config.docker);
+console.log(`dockroute starting (provider=${config.provider}, docker=${dockerHost})`);
 
-const docker = new DockerClient(config.dockerSock);
+const docker = new DockerClient(config.docker);
 
 try {
   await docker.ping();
 } catch (err) {
-  const diagnosis = await diagnoseSocketAccess(config.dockerSock);
+  const diagnosis =
+    config.docker.kind === "unix" ? await diagnoseSocketAccess(config.docker.socketPath) : null;
   console.error(
-    `[docker] ${diagnosis ?? `Cannot reach the Docker Engine at ${config.dockerSock}: ${err}`}`,
+    `[docker] ${diagnosis ?? `Cannot reach the Docker Engine at ${dockerHost}: ${err}`}`,
   );
   process.exit(1);
 }

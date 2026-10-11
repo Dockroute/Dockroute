@@ -19,7 +19,8 @@ reproduce and the impact you foresee.
   It only sends `GET` requests to `/_ping`, `/containers/json` and `/events`.
   Note that a `:ro` socket mount does **not** make the Docker API read-only:
   whoever can open the socket can call any endpoint, so treat socket access as
-  privileged. Restricting access to only these endpoints is tracked in #52.
+  privileged. To restrict DockRoute to only these endpoints, run it behind a
+  socket proxy with `DOCKER_HOST=tcp://…` (see "Hardened setup" in the README).
 - Grant the DNS provider token the minimum scopes documented in the
   README (Zone → DNS → Edit; Account → Cloudflare Tunnel → Edit only when
   using tunnels).

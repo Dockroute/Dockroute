@@ -1,25 +1,31 @@
 import type { ContainerInfo } from "../core/types";
+import type { DockerEndpoint } from "./endpoint";
 
 /**
- * Minimal Docker Engine API client over the unix socket.
- * Bun's fetch supports unix sockets natively via the `unix` option.
+ * Minimal, read-only Docker Engine API client. It only ever issues `GET`
+ * requests to `/_ping`, `/containers/json` and `/events`, so a socket proxy
+ * can allow exactly those. Bun's fetch supports unix sockets natively via the
+ * `unix` option; tcp endpoints are plain HTTP.
  */
 export class DockerClient {
-  constructor(private sockPath: string) {}
+  constructor(private endpoint: DockerEndpoint) {}
 
-  private fetch(path: string): Promise<Response> {
-    return fetch(`http://docker${path}`, { unix: this.sockPath });
+  private async get(path: string, signal?: AbortSignal): Promise<Response> {
+    const res =
+      this.endpoint.kind === "unix"
+        ? await fetch(`http://docker${path}`, { unix: this.endpoint.socketPath, signal })
+        : await fetch(`${this.endpoint.baseUrl}${path}`, { signal });
+    if (!res.ok) throw new Error(await describeFailure(res));
+    return res;
   }
 
   /** Cheap connectivity check against the Engine's /_ping endpoint. */
   async ping(): Promise<void> {
-    const res = await this.fetch("/_ping");
-    if (!res.ok) throw new Error(`Docker API ${res.status}: ${await res.text()}`);
+    await this.get("/_ping");
   }
 
   async listRunningContainers(): Promise<ContainerInfo[]> {
-    const res = await this.fetch("/containers/json");
-    if (!res.ok) throw new Error(`Docker API ${res.status}: ${await res.text()}`);
+    const res = await this.get("/containers/json");
     return (await res.json()) as ContainerInfo[];
   }
 
@@ -32,15 +38,19 @@ export class DockerClient {
       type: ["container"],
       event: ["start", "die", "stop", "destroy"],
     });
-    const res = await fetch(`http://docker/events?filters=${encodeURIComponent(filters)}`, {
-      unix: this.sockPath,
-      signal,
-    });
-    if (!res.ok || !res.body) {
-      throw new Error(`Docker events API ${res.status}`);
-    }
+    const res = await this.get(`/events?filters=${encodeURIComponent(filters)}`, signal);
+    if (!res.body) throw new Error("Docker events API returned no body");
     for await (const _chunk of res.body) {
       yield;
     }
   }
+}
+
+async function describeFailure(res: Response): Promise<string> {
+  const message = `Docker API ${res.status}: ${await res.text()}`;
+  if (res.status !== 403) return message;
+  return (
+    `${message}. If DOCKER_HOST points at a socket proxy, make sure it allows ` +
+    `GET /_ping, /containers/json and /events.`
+  );
 }
