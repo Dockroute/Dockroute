@@ -15,7 +15,7 @@ export async function diagnoseSocketAccess(sockPath: string): Promise<string | n
     return (
       `Docker socket not found at ${sockPath}. ` +
       `Mount it into the container: -v /var/run/docker.sock:/var/run/docker.sock:ro ` +
-      `(or point DOCKER_SOCK at its path).`
+      `(or point DOCKER_HOST=unix://… or DOCKER_SOCK at its path).`
     );
   }
 

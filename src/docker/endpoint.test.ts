@@ -60,9 +60,27 @@ describe("resolveDockerEndpoint", () => {
       "socket-proxy:2375",
       "unix://relative.sock",
       "tcp://",
+      "tcp://user:secret@socket-proxy:2375",
+      "tcp://socket-proxy:2375?tls=1",
     ]) {
       expect(() => resolveDockerEndpoint({ DOCKER_HOST: value })).toThrow(/Invalid DOCKER_HOST/);
     }
+  });
+
+  test("does not echo credentials from a rejected DOCKER_HOST", () => {
+    expect(() =>
+      resolveDockerEndpoint({ DOCKER_HOST: "tcp://user:secret@socket-proxy:2375" }),
+    ).toThrow(/^(?!.*secret).*tcp:\/\/\*\*\*@socket-proxy:2375/);
+  });
+
+  test.each([
+    ["an @ in the password", "tcp://u:p@ss@socket-proxy:2375", "tcp://***@socket-proxy:2375"],
+    ["a / in the password", "tcp://u:p/ss@socket-proxy:2375", "tcp://***@socket-proxy:2375"],
+    ["no scheme", "u:p/ss@socket-proxy:2375", "***@socket-proxy:2375"],
+  ])("masks the whole userinfo of a rejected DOCKER_HOST with %s", (_, value, masked) => {
+    expect(() => resolveDockerEndpoint({ DOCKER_HOST: value })).toThrow(
+      `Invalid DOCKER_HOST "${masked}"`,
+    );
   });
 });
 
