@@ -1,3 +1,9 @@
+## [0.7.0](https://github.com/Dockroute/Dockroute/compare/v0.6.1...v0.7.0) (2026-10-11)
+
+### Features
+
+* log project link on startup ([#69](https://github.com/Dockroute/Dockroute/issues/69)) ([47672d0](https://github.com/Dockroute/Dockroute/commit/47672d0df57f741f420006537609b100eecacdd4))
+
 ## [0.6.1](https://github.com/Dockroute/Dockroute/compare/v0.6.0...v0.6.1) (2026-10-11)
 
 ### Bug Fixes
