@@ -1,22 +1,23 @@
-import type { DockerClient } from "../docker/client";
-import { touchHeartbeat } from "../health";
 import type { Provider } from "../providers/provider";
 import { desiredFromContainer, type ParseOptions } from "./labels";
+import type { ContainerSource } from "./ports";
 import type { DesiredState, DnsRecord, TunnelRoute } from "./types";
 
 /**
  * Recomputes the full desired state from all running containers and hands it
  * to the provider. Serialized: if a reconcile is already running, the request
- * is coalesced into one follow-up run.
+ * is coalesced into one follow-up run. `onReconciled` runs after every
+ * successful sync (the composition root uses it for the liveness heartbeat).
  */
 export class Reconciler {
   private running = false;
   private pending = false;
 
   constructor(
-    private docker: DockerClient,
+    private containers: ContainerSource,
     private provider: Provider,
     private parseOpts: ParseOptions,
+    private onReconciled: () => void | Promise<void> = () => {},
   ) {}
 
   async reconcile(): Promise<void> {
@@ -28,10 +29,10 @@ export class Reconciler {
     try {
       do {
         this.pending = false;
-        const containers = await this.docker.listRunningContainers();
+        const containers = await this.containers.listRunningContainers();
         const perContainer = containers.map((c) => desiredFromContainer(c, this.parseOpts));
         await this.provider.sync(mergeDesired(perContainer));
-        await touchHeartbeat();
+        await this.onReconciled();
       } while (this.pending);
     } catch (err) {
       console.error("[reconciler] reconcile failed:", err);

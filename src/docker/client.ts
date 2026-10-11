@@ -1,3 +1,4 @@
+import type { ContainerSource } from "../core/ports";
 import type { ContainerInfo } from "../core/types";
 import type { DockerEndpoint } from "./endpoint";
 
@@ -7,7 +8,7 @@ import type { DockerEndpoint } from "./endpoint";
  * can allow exactly those. Bun's fetch supports unix sockets natively via the
  * `unix` option; tcp endpoints are plain HTTP.
  */
-export class DockerClient {
+export class DockerClient implements ContainerSource {
   constructor(private endpoint: DockerEndpoint) {}
 
   private async get(path: string, signal?: AbortSignal): Promise<Response> {
