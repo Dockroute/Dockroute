@@ -78,8 +78,10 @@ services:
         - container: /var/run/docker.sock
           description:
             en_US: >-
-              Docker Engine socket, mounted read-only. DockRoute only lists
-              containers and listens to events.
+              Docker Engine socket. DockRoute only sends GET requests to
+              /_ping, /containers/json and /events; a :ro mount does not make
+              the API read-only, see
+              https://github.com/Dockroute/Dockroute/blob/main/SECURITY.md.
 x-casaos:
   id: org.icewhale.dockroute
   main: dockroute
