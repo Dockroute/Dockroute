@@ -9,9 +9,11 @@ const DEFAULT_TCP_PORT = "2375";
 /**
  * Resolves the Docker endpoint the way the Docker CLI does: `DOCKER_HOST`
  * first, then the legacy `DOCKER_SOCK` path, then the standard socket.
- * Only `unix://` and plain `tcp://` are supported; `tcp://` is meant for a
- * socket proxy on an internal network, so there is no TLS. Blank values mean
- * unset, since Portainer and Unraid submit cleared fields as empty strings.
+ * Only `unix://` and plain `tcp://host[:port]` are supported; `tcp://` is meant
+ * for a socket proxy on an internal network, so there is no TLS, and
+ * credentials, query or fragment are rejected rather than silently dropped.
+ * Blank values mean unset, since Portainer and Unraid submit cleared fields as
+ * empty strings.
  */
 export function resolveDockerEndpoint(env: Record<string, string | undefined>): DockerEndpoint {
   const host = env.DOCKER_HOST?.trim();
@@ -32,11 +34,17 @@ function parseDockerHost(value: string): DockerEndpoint {
     if (socketPath.startsWith("/")) return { kind: "unix", socketPath };
   } else if (value.startsWith("tcp://")) {
     const url = URL.parse(value);
-    if (url?.hostname && (url.pathname === "" || url.pathname === "/")) {
+    const hostOnly = url && !url.username && !url.password && !url.search && !url.hash;
+    if (hostOnly && url.hostname && (url.pathname === "" || url.pathname === "/")) {
       return { kind: "tcp", baseUrl: `http://${url.hostname}:${url.port || DEFAULT_TCP_PORT}` };
     }
   }
   throw new Error(
-    `Invalid DOCKER_HOST "${value}". Expected unix:///path/to/docker.sock or tcp://host:port.`,
+    `Invalid DOCKER_HOST "${redactUserinfo(value)}". Expected unix:///path/to/docker.sock or tcp://host:port.`,
   );
+}
+
+/** Masks `user:password@` so a rejected value never leaks credentials into logs. */
+function redactUserinfo(value: string): string {
+  return value.replace(/^([a-z]+:\/\/)[^/@]*@/i, "$1***@");
 }
