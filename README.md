@@ -163,8 +163,8 @@ health — report `unhealthy` when the Docker socket goes unreachable or the
 provider keeps failing to sync, not just when the process itself crashes.
 
 No extra configuration is needed; running behind `docker compose` or
-CasaOS/Arcane/Portainer picks it up automatically from the image. Bring your
-own `healthcheck:` block only if you want different thresholds:
+CasaOS/Arcane/Portainer/Runtipi picks it up automatically from the image.
+Bring your own `healthcheck:` block only if you want different thresholds:
 
 ```yaml
 services:
