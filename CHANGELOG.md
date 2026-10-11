@@ -1,3 +1,9 @@
+## [0.6.0](https://github.com/Dockroute/Dockroute/compare/v0.5.1...v0.6.0) (2026-10-11)
+
+### Features
+
+* **docker:** support DOCKER_HOST for unix:// and tcp:// endpoints ([#62](https://github.com/Dockroute/Dockroute/issues/62)) ([912202d](https://github.com/Dockroute/Dockroute/commit/912202d8222503c27eac7badae7cb33635db287e)), closes [#52](https://github.com/Dockroute/Dockroute/issues/52) [#52](https://github.com/Dockroute/Dockroute/issues/52)
+
 ## [0.5.1](https://github.com/Dockroute/Dockroute/compare/v0.5.0...v0.5.1) (2026-09-16)
 
 ### Bug Fixes
