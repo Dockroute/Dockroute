@@ -56,7 +56,7 @@ describe("DockerClient", () => {
   });
 
   test("streams container events over tcp, forwarding the abort signal", async () => {
-    const calls = fakeDockerApi(() => new Response("{}\n{}\n"));
+    const calls = fakeDockerApi(() => new Response(streamOf("{}\n", "{}\n")));
     const controller = new AbortController();
 
     const events = [];
@@ -69,7 +69,7 @@ describe("DockerClient", () => {
       event: ["start", "die", "stop", "destroy"],
     });
     expect(calls[0]?.init?.signal).toBe(controller.signal);
-    expect(events.length).toBeGreaterThan(0);
+    expect(events).toHaveLength(2);
   });
 
   test("only ever issues GET requests", async () => {
@@ -99,3 +99,12 @@ describe("DockerClient", () => {
     );
   });
 });
+
+function streamOf(...chunks: string[]): ReadableStream<Uint8Array> {
+  return new ReadableStream({
+    start(controller) {
+      for (const chunk of chunks) controller.enqueue(new TextEncoder().encode(chunk));
+      controller.close();
+    },
+  });
+}

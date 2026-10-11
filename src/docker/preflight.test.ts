@@ -26,6 +26,7 @@ describe("diagnoseSocketAccess", () => {
 
     expect(message).toContain("not found");
     expect(message).toContain("-v /var/run/docker.sock");
+    expect(message).toContain("DOCKER_HOST=unix://");
   });
 
   test("flags a non-socket path as a broken bind mount", async () => {

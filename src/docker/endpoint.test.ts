@@ -60,9 +60,17 @@ describe("resolveDockerEndpoint", () => {
       "socket-proxy:2375",
       "unix://relative.sock",
       "tcp://",
+      "tcp://user:secret@socket-proxy:2375",
+      "tcp://socket-proxy:2375?tls=1",
     ]) {
       expect(() => resolveDockerEndpoint({ DOCKER_HOST: value })).toThrow(/Invalid DOCKER_HOST/);
     }
+  });
+
+  test("does not echo credentials from a rejected DOCKER_HOST", () => {
+    expect(() =>
+      resolveDockerEndpoint({ DOCKER_HOST: "tcp://user:secret@socket-proxy:2375" }),
+    ).toThrow(/^(?!.*secret).*tcp:\/\/\*\*\*@socket-proxy:2375/);
   });
 });
 
