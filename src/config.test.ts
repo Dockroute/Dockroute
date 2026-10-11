@@ -15,6 +15,21 @@ describe("loadConfig", () => {
     });
   });
 
+  test("defaults to the local Docker socket", () => {
+    expect(loadConfig({}).docker).toEqual({ kind: "unix", socketPath: "/var/run/docker.sock" });
+  });
+
+  test("connects to a socket proxy through DOCKER_HOST", () => {
+    expect(loadConfig({ DOCKER_HOST: "tcp://socket-proxy:2375" }).docker).toEqual({
+      kind: "tcp",
+      baseUrl: "http://socket-proxy:2375",
+    });
+  });
+
+  test("fails at startup on an unsupported DOCKER_HOST", () => {
+    expect(() => loadConfig({ DOCKER_HOST: "ssh://user@host" })).toThrow(/Invalid DOCKER_HOST/);
+  });
+
   test("parses the delete grace, zero included", () => {
     expect(loadConfig({ DOCKROUTE_DELETE_GRACE_SECONDS: "180" }).deleteGraceSeconds).toBe(180);
     expect(loadConfig({ DOCKROUTE_DELETE_GRACE_SECONDS: "0" }).deleteGraceSeconds).toBe(0);

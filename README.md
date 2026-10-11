@@ -55,8 +55,65 @@ services:
 > replacing the socket file. It does **not** make the Docker API read-only: any
 > process that can open the socket can still call every endpoint (create, exec,
 > delete…). DockRoute itself only issues `GET` requests to three endpoints:
-> `/_ping`, `/containers/json` and `/events` (see [#52](https://github.com/Dockroute/Dockroute/issues/52)
-> for restricting access to just these).
+> `/_ping`, `/containers/json` and `/events`. To enforce that, use the
+> [hardened setup](#hardened-setup-socket-proxy) below.
+
+### Hardened setup: socket proxy
+
+Instead of giving DockRoute the Docker socket, put a socket proxy in front of
+it and point `DOCKER_HOST` at the proxy. The proxy below
+([wollomatic/socket-proxy](https://github.com/wollomatic/socket-proxy)) only
+lets `GET /_ping`, `GET /containers/json` and `GET /events` through, and only
+from the `dockroute` container; every other method and path is denied.
+
+```yaml
+services:
+  socket-proxy:
+    image: wollomatic/socket-proxy:1.13.1
+    restart: unless-stopped
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    # The image runs as nobody; give it the group that owns the socket.
+    # Find it with: stat -c '%g' /var/run/docker.sock
+    group_add: ["${DOCKER_GID:?set DOCKER_GID to the group id of /var/run/docker.sock}"]
+    command:
+      - -listenip=0.0.0.0
+      - -allowfrom=dockroute
+      - -allowGET=/(v[0-9.]+/)?(_ping|containers/json|events)
+      - -watchdoginterval=300
+      - -stoponwatchdog
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks: [docker-proxy]
+
+  dockroute:
+    image: ghcr.io/dockroute/dockroute:latest
+    restart: unless-stopped
+    depends_on: [socket-proxy]
+    environment:
+      DOCKER_HOST: tcp://socket-proxy:2375
+      DOCKROUTE_PROVIDER: cloudflare
+      DOCKROUTE_OWNER_ID: home-lab
+      CLOUDFLARE_API_TOKEN: ${CLOUDFLARE_API_TOKEN}
+    # No socket mount: with DOCKER_HOST=tcp://… the entrypoint gives the app
+    # no Docker group at all.
+    networks: [docker-proxy, default]  # default: reach the DNS provider API
+
+networks:
+  docker-proxy:
+    internal: true  # no egress; never publish port 2375
+```
+
+To migrate an existing setup, add the `socket-proxy` service and the
+`docker-proxy` network, set `DOCKER_HOST`, and remove the socket volume from
+`dockroute`. If the proxy rejects a request, DockRoute logs the `403` together
+with the three endpoints the allowlist must permit.
+
+[Tecnativa/docker-socket-proxy](https://github.com/Tecnativa/docker-socket-proxy)
+also works (`CONTAINERS=1`, `EVENTS=1`, `POST=0`), but its filters are coarser:
+`CONTAINERS=1` also allows reading every container's details, including its
+environment variables.
 
 Or start with the zero-credential dry run:
 
@@ -81,6 +138,7 @@ DOCKROUTE_DEFAULT_TARGET=192.168.1.10 bun start   # provider=log by default
 
 | Variable                   | Default                | Description                             |
 | -------------------------- | ---------------------- | --------------------------------------- |
+| `DOCKER_HOST`              | —                      | Docker Engine endpoint: `unix:///path` or `tcp://host:port` (plain HTTP, e.g. a socket proxy). Overrides `DOCKER_SOCK` |
 | `DOCKER_SOCK`              | `/var/run/docker.sock` | Docker Engine socket path               |
 | `DOCKROUTE_PROVIDER`       | `log`                  | `log` (dry-run) or `cloudflare`         |
 | `DOCKROUTE_DEFAULT_TARGET` | —                      | Fallback target when label is omitted   |

@@ -20,8 +20,9 @@ flowchart LR
     R -->|sync| DNS[(DNS Provider\nlog / cloudflare / ...)]
 ```
 
-1. **Watcher** (`src/docker/watcher.ts`) — connects to the Docker socket
-   (Bun's `fetch` supports `unix:` sockets natively). On startup it lists all
+1. **Watcher** (`src/docker/watcher.ts`) — connects to the Docker Engine,
+   either over the unix socket (Bun's `fetch` supports `unix:` natively) or
+   over `DOCKER_HOST=tcp://…` through a socket proxy. On startup it lists all
    running containers; afterwards it streams `/events` (container `start`,
    `die`, `stop`) and triggers a reconciliation on every relevant event.
    A periodic full re-list acts as a safety net against missed events.
@@ -164,6 +165,7 @@ services:
 
 | Variable                   | Default                | Description                             |
 | -------------------------- | ---------------------- | --------------------------------------- |
+| `DOCKER_HOST`              | —                      | Docker Engine endpoint: `unix:///path` or `tcp://host:port`; overrides `DOCKER_SOCK` |
 | `DOCKER_SOCK`              | `/var/run/docker.sock` | Docker Engine socket path               |
 | `DOCKROUTE_PROVIDER`       | `log`                  | DNS provider to use                     |
 | `DOCKROUTE_DEFAULT_TARGET` | —                      | Fallback target when label is omitted   |
@@ -184,7 +186,8 @@ src/
   index.ts              entrypoint — wiring only
   config.ts             env-based configuration (policy validation lives here)
   docker/
-    client.ts           minimal Docker Engine API client (unix socket)
+    client.ts           minimal Docker Engine API client (unix socket or tcp)
+    endpoint.ts         resolves DOCKER_HOST / DOCKER_SOCK into an endpoint
     watcher.ts          event stream + periodic resync → triggers reconcile
   core/
     types.ts            DnsRecord, TunnelRoute, DesiredState, ContainerInfo

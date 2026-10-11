@@ -1,3 +1,5 @@
+import { type DockerEndpoint, resolveDockerEndpoint } from "./docker/endpoint";
+
 export const POLICIES = ["sync", "upsert-only", "create-only"] as const;
 export type Policy = (typeof POLICIES)[number];
 
@@ -11,7 +13,7 @@ export interface CloudflareConfig {
 }
 
 export interface Config {
-  dockerSock: string;
+  docker: DockerEndpoint;
   provider: string;
   defaultTarget?: string;
   resyncSeconds: number;
@@ -47,7 +49,7 @@ export function loadConfig(env = process.env): Config {
   }
 
   return {
-    dockerSock: env.DOCKER_SOCK ?? "/var/run/docker.sock",
+    docker: resolveDockerEndpoint(env),
     provider,
     defaultTarget: env.DOCKROUTE_DEFAULT_TARGET,
     resyncSeconds: secondsFromEnv(
