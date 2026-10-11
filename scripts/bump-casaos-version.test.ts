@@ -1,5 +1,7 @@
 import { describe, expect, test } from "bun:test";
-import { bumpCasaosVersion } from "./bump-casaos-version";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { bumpCasaosVersion, main } from "./bump-casaos-version";
 
 const TEMPLATE = new URL("../templates/casaos/dockroute/docker-compose.yml", import.meta.url);
 
@@ -72,5 +74,32 @@ describe("bumpCasaosVersion", () => {
 
     expect(parsed["x-casaos"].version).toBe("1.2.3");
     expect(parsed["x-casaos"].update_at).toBe("2026-10-11");
+  });
+});
+
+describe("main", () => {
+  test("rewrites the template file in place with the release date in UTC", async () => {
+    const path = join(tmpdir(), `casaos-${crypto.randomUUID()}.yml`);
+    await Bun.write(path, compose);
+    const lines: string[] = [];
+
+    const code = await main(["1.2.3", path], new Date("2026-10-11T23:30:00Z"), (line) =>
+      lines.push(line),
+    );
+
+    expect(code).toBe(0);
+    expect(await Bun.file(path).text()).toContain(
+      '  version: "1.2.3"\n  update_at: "2026-10-11"\n',
+    );
+    expect(lines).toEqual(["CasaOS template set to 1.2.3 (2026-10-11)"]);
+  });
+
+  test("prints usage and fails without a version", async () => {
+    const lines: string[] = [];
+
+    const code = await main([], new Date(), (line) => lines.push(line));
+
+    expect(code).toBe(1);
+    expect(lines[0]).toStartWith("usage:");
   });
 });

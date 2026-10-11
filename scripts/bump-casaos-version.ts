@@ -46,14 +46,23 @@ export function bumpCasaosVersion(source: string, version: string, date: string)
   return lines.join("\n");
 }
 
-if (import.meta.main) {
-  const [version, path = DEFAULT_TEMPLATE.pathname] = Bun.argv.slice(2);
+// Entry point for the release's prepareCmd. Returns the exit code so the
+// argument handling and the file write are testable without a subprocess.
+export async function main(
+  args: string[],
+  now: Date = new Date(),
+  log: (line: string) => void = console.log,
+): Promise<number> {
+  const [version, path = DEFAULT_TEMPLATE.pathname] = args;
   if (!version) {
-    console.error("usage: bun scripts/bump-casaos-version.ts <version> [template]");
-    process.exit(1);
+    log("usage: bun scripts/bump-casaos-version.ts <version> [template]");
+    return 1;
   }
-  const date = new Date().toISOString().slice(0, 10);
+  const date = now.toISOString().slice(0, 10);
   const file = Bun.file(path);
   await Bun.write(file, bumpCasaosVersion(await file.text(), version, date));
-  console.log(`CasaOS template set to ${version} (${date})`);
+  log(`CasaOS template set to ${version} (${date})`);
+  return 0;
 }
+
+if (import.meta.main) process.exit(await main(Bun.argv.slice(2)));
