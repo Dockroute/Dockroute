@@ -1,0 +1,87 @@
+{
+  "$schema": "../app-info-schema.json",
+  "name": "DockRoute",
+  "available": true,
+  "exposable": false,
+  "dynamic_config": true,
+  "no_gui": true,
+  "port": 8099,
+  "id": "dockroute",
+  "tipi_version": 1,
+  "version": "0.7.0",
+  "categories": ["network"],
+  "description": "DockRoute watches your running containers, reads their dockroute.* labels and reconciles the matching DNS records (and Cloudflare Tunnel routes) in a pluggable provider. Your Docker labels are the source of truth; DockRoute makes the provider match them, and it never alters or deletes a record it cannot prove it manages, because every record it creates is paired with an ownership TXT record in the ExternalDNS style. It has no web interface: it is a background reconciler, check the container logs to see what it is doing.",
+  "short_desc": "External-DNS for plain Docker hosts, driven by container labels",
+  "author": "Danilo Dorgam",
+  "source": "https://github.com/Dockroute/Dockroute",
+  "website": "https://www.dockroute.dev",
+  "form_fields": [
+    {
+      "type": "text",
+      "label": "DNS provider: \"log\" is a zero-credential dry run that only prints the desired state; switch to \"cloudflare\" when you are ready.",
+      "default": "log",
+      "required": true,
+      "env_variable": "DOCKROUTE_PROVIDER"
+    },
+    {
+      "type": "text",
+      "label": "Ownership id written to the companion TXT records. Lets several DockRoute instances share a zone safely.",
+      "default": "default",
+      "required": false,
+      "env_variable": "DOCKROUTE_OWNER_ID"
+    },
+    {
+      "type": "text",
+      "label": "sync = create, update and delete owned records; upsert-only = never delete; create-only = never update or delete.",
+      "default": "sync",
+      "required": false,
+      "env_variable": "DOCKROUTE_POLICY"
+    },
+    {
+      "type": "number",
+      "label": "Seconds a record must stay gone before DockRoute deletes it. Protects against container restarts; 0 deletes immediately.",
+      "default": 60,
+      "required": false,
+      "env_variable": "DOCKROUTE_DELETE_GRACE_SECONDS"
+    },
+    {
+      "type": "text",
+      "label": "Fallback record value (IP or CNAME target) for containers that omit the dockroute.target label. Usually this server's LAN or WAN IP.",
+      "required": false,
+      "env_variable": "DOCKROUTE_DEFAULT_TARGET"
+    },
+    {
+      "type": "text",
+      "label": "Optional comma-separated allowlist of DNS zones DockRoute may touch. Empty = every zone the token can see.",
+      "required": false,
+      "env_variable": "DOCKROUTE_DOMAIN_FILTER"
+    },
+    {
+      "type": "number",
+      "label": "Interval of the periodic full reconcile that backs up the Docker event stream.",
+      "default": 60,
+      "required": false,
+      "env_variable": "DOCKROUTE_RESYNC_SECONDS"
+    },
+    {
+      "type": "password",
+      "label": "Required when the provider is cloudflare. Needs Zone -> DNS -> Edit, plus Account -> Cloudflare Tunnel -> Edit for tunnel publishing.",
+      "required": false,
+      "env_variable": "CLOUDFLARE_API_TOKEN"
+    },
+    {
+      "type": "text",
+      "label": "Only needed for Cloudflare Tunnel publishing.",
+      "required": false,
+      "env_variable": "CLOUDFLARE_ACCOUNT_ID"
+    },
+    {
+      "type": "text",
+      "label": "Only needed for Cloudflare Tunnel publishing. Uses an existing tunnel, so you keep running cloudflared yourself.",
+      "required": false,
+      "env_variable": "CLOUDFLARE_TUNNEL_ID"
+    }
+  ],
+  "supported_architectures": ["amd64", "arm64"],
+  "min_tipi_version": "4.5.0"
+}
