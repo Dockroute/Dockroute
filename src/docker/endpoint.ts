@@ -44,7 +44,14 @@ function parseDockerHost(value: string): DockerEndpoint {
   );
 }
 
-/** Masks `user:password@` so a rejected value never leaks credentials into logs. */
+/**
+ * Masks everything between the scheme and the last `@`, so a rejected value
+ * never leaks credentials into logs. A malformed value has no reliable end of
+ * userinfo (passwords may hold `@` or `/`), so the mask errs on hiding more.
+ */
 function redactUserinfo(value: string): string {
-  return value.replace(/^([a-z]+:\/\/)[^/@]*@/i, "$1***@");
+  const at = value.lastIndexOf("@");
+  if (at < 0) return value;
+  const scheme = value.match(/^[a-z]+:\/\//i)?.[0] ?? "";
+  return `${scheme}***${value.slice(at)}`;
 }
