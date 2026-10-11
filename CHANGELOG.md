@@ -1,3 +1,9 @@
+## [0.7.1](https://github.com/Dockroute/Dockroute/compare/v0.7.0...v0.7.1) (2026-10-11)
+
+### Bug Fixes
+
+* **config:** treat blank env values as unset ([#73](https://github.com/Dockroute/Dockroute/issues/73)) ([7e812f7](https://github.com/Dockroute/Dockroute/commit/7e812f7a5a01cc473fffacd27b4dd6661f938156))
+
 ## [0.7.0](https://github.com/Dockroute/Dockroute/compare/v0.6.1...v0.7.0) (2026-10-11)
 
 ### Features
