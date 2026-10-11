@@ -2,14 +2,14 @@ import { describe, expect, test } from "bun:test";
 import { logStartupBanner } from "./banner";
 
 describe("logStartupBanner", () => {
-  test("logs exactly one line with the version, the repo link and a star request", () => {
+  test("logs exactly one line with the version, the docs link and the repo link to star", () => {
     const lines: string[] = [];
     const log = (line: string) => lines.push(line);
 
     logStartupBanner(log, "1.2.3");
 
     expect(lines).toEqual([
-      "DockRoute v1.2.3 · https://github.com/Dockroute/Dockroute · ⭐ Star us if it saves you time",
+      "DockRoute v1.2.3 · Docs: https://dockroute.dev · ⭐ https://github.com/Dockroute/Dockroute",
     ]);
   });
 
