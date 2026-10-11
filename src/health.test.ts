@@ -2,7 +2,7 @@ import { afterEach, describe, expect, test } from "bun:test";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { touchHeartbeat } from "./health";
+import { DEFAULT_HEARTBEAT_PATH, heartbeatPath, touchHeartbeat } from "./health";
 
 describe("touchHeartbeat", () => {
   const cleanups: Array<() => Promise<void> | void> = [];
@@ -38,5 +38,17 @@ describe("touchHeartbeat", () => {
     const second = Number(await Bun.file(path).text());
 
     expect(second).toBeGreaterThanOrEqual(first);
+  });
+});
+
+describe("heartbeatPath", () => {
+  test("uses DOCKROUTE_HEARTBEAT_PATH when set", () => {
+    expect(heartbeatPath({ DOCKROUTE_HEARTBEAT_PATH: "/run/hb" })).toBe("/run/hb");
+  });
+
+  test("a blank value means unset", () => {
+    for (const blank of ["", "   "]) {
+      expect(heartbeatPath({ DOCKROUTE_HEARTBEAT_PATH: blank })).toBe(DEFAULT_HEARTBEAT_PATH);
+    }
   });
 });

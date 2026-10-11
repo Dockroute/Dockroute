@@ -6,10 +6,12 @@
  * "the process didn't crash".
  */
 
+import { nonBlank } from "./env";
+
 export const DEFAULT_HEARTBEAT_PATH = "/tmp/dockroute-heartbeat";
 
 export function heartbeatPath(env = process.env): string {
-  return env.DOCKROUTE_HEARTBEAT_PATH ?? DEFAULT_HEARTBEAT_PATH;
+  return nonBlank(env.DOCKROUTE_HEARTBEAT_PATH) ?? DEFAULT_HEARTBEAT_PATH;
 }
 
 /** Writes the current time to the heartbeat file. Call after each successful reconcile. */

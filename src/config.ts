@@ -1,4 +1,5 @@
 import { type DockerEndpoint, resolveDockerEndpoint } from "./docker/endpoint";
+import { nonBlank } from "./env";
 
 export const POLICIES = ["sync", "upsert-only", "create-only"] as const;
 export type Policy = (typeof POLICIES)[number];
@@ -33,16 +34,16 @@ export interface Config {
 }
 
 export function loadConfig(env = process.env): Config {
-  const policy = env.DOCKROUTE_POLICY ?? "sync";
+  const policy = nonBlank(env.DOCKROUTE_POLICY) ?? "sync";
   if (!POLICIES.includes(policy as Policy)) {
     throw new Error(`Invalid DOCKROUTE_POLICY "${policy}". Valid values: ${POLICIES.join(", ")}`);
   }
 
-  const provider = env.DOCKROUTE_PROVIDER ?? "log";
+  const provider = nonBlank(env.DOCKROUTE_PROVIDER) ?? "log";
   const cloudflare: CloudflareConfig = {
-    apiToken: env.CLOUDFLARE_API_TOKEN,
-    accountId: env.CLOUDFLARE_ACCOUNT_ID,
-    tunnelId: env.CLOUDFLARE_TUNNEL_ID,
+    apiToken: nonBlank(env.CLOUDFLARE_API_TOKEN),
+    accountId: nonBlank(env.CLOUDFLARE_ACCOUNT_ID),
+    tunnelId: nonBlank(env.CLOUDFLARE_TUNNEL_ID),
   };
   if (provider === "cloudflare" && !cloudflare.apiToken) {
     throw new Error("CLOUDFLARE_API_TOKEN is required when DOCKROUTE_PROVIDER=cloudflare");
@@ -51,14 +52,14 @@ export function loadConfig(env = process.env): Config {
   return {
     docker: resolveDockerEndpoint(env),
     provider,
-    defaultTarget: env.DOCKROUTE_DEFAULT_TARGET,
+    defaultTarget: nonBlank(env.DOCKROUTE_DEFAULT_TARGET),
     resyncSeconds: secondsFromEnv(
       "DOCKROUTE_RESYNC_SECONDS",
       env.DOCKROUTE_RESYNC_SECONDS,
       DEFAULT_RESYNC_SECONDS,
       1,
     ),
-    ownerId: env.DOCKROUTE_OWNER_ID ?? "default",
+    ownerId: nonBlank(env.DOCKROUTE_OWNER_ID) ?? "default",
     policy: policy as Policy,
     deleteGraceSeconds: secondsFromEnv(
       "DOCKROUTE_DELETE_GRACE_SECONDS",
@@ -66,7 +67,7 @@ export function loadConfig(env = process.env): Config {
       DEFAULT_DELETE_GRACE_SECONDS,
       0,
     ),
-    txtPrefix: env.DOCKROUTE_TXT_PREFIX ?? "_dockroute-",
+    txtPrefix: nonBlank(env.DOCKROUTE_TXT_PREFIX) ?? "_dockroute-",
     domainFilter: (env.DOCKROUTE_DOMAIN_FILTER ?? "")
       .split(",")
       .map((d) => d.trim())
