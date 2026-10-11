@@ -1,3 +1,4 @@
+import { logStartupBanner } from "./banner";
 import { loadConfig } from "./config";
 import { Reconciler } from "./core/reconciler";
 import { DockerClient } from "./docker/client";
@@ -8,6 +9,8 @@ import { touchHeartbeat } from "./health";
 import { createProvider } from "./providers/provider";
 import "./providers/log";
 import "./providers/cloudflare/cloudflare";
+
+logStartupBanner();
 
 const config = loadConfig();
 const dockerHost = describeDockerEndpoint(config.docker);
