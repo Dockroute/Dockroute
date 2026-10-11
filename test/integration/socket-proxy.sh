@@ -41,10 +41,11 @@ cleanup() {
 trap cleanup EXIT
 
 # HTTP status of METHOD URL, sent from the dockroute container (the only
-# client the proxy allows).
+# client the proxy allows). Exits once the headers arrive, so streaming
+# endpoints such as /events do not hang.
 status_from_dockroute() {
   compose exec -T -e METHOD="$1" -e URL="$2" dockroute \
-    bun -e 'const r = await fetch(process.env.URL, { method: process.env.METHOD }); console.log(r.status)'
+    bun -e 'const r = await fetch(process.env.URL, { method: process.env.METHOD }); console.log(r.status); process.exit(0)'
 }
 
 expect_status() {
@@ -101,6 +102,7 @@ pass "app supplementary groups [${groups# }] exclude the Docker group ($DOCKER_G
 # 3. The proxy only allows the three read endpoints DockRoute uses.
 expect_status 200 "$(status_from_dockroute GET "$PROXY/_ping")" "GET /_ping"
 expect_status 200 "$(status_from_dockroute GET "$PROXY/v1.43/containers/json")" "GET /v1.43/containers/json"
+expect_status 200 "$(status_from_dockroute GET "$PROXY/v1.43/events")" "GET /v1.43/events"
 expect_status 403 "$(status_from_dockroute GET "$PROXY/containers/$target_id/json")" "GET /containers/{id}/json"
 expect_status 403 "$(status_from_dockroute GET "$PROXY/images/json")" "GET /images/json"
 expect_status 405 "$(status_from_dockroute POST "$PROXY/containers/$target_id/stop")" "POST /containers/{id}/stop"
