@@ -1,6 +1,7 @@
 import type { Config } from "../../config";
+import type { Provider } from "../../core/ports";
 import type { DesiredState, DnsRecord, TunnelRoute } from "../../core/types";
-import { type Provider, registerProvider } from "../provider";
+import { registerProvider } from "../provider";
 import { DeleteGrace } from "../registry/grace";
 import { parseOwnershipContent, parseTxtName } from "../registry/ownership";
 import { type Plan, planChanges, type RegistryRecord } from "../registry/planner";

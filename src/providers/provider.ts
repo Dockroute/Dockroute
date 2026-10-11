@@ -1,15 +1,5 @@
 import type { Config } from "../config";
-import type { DesiredState } from "../core/types";
-
-/**
- * A DNS provider receives the FULL desired state on every reconcile and owns
- * the diff against its actual state (create / update / delete). Providers
- * without tunnel support must warn and skip tunnelRoutes, never throw.
- */
-export interface Provider {
-  readonly name: string;
-  sync(desired: DesiredState): Promise<void>;
-}
+import type { Provider } from "../core/ports";
 
 type ProviderFactory = (config: Config) => Provider;
 

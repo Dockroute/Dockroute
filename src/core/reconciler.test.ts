@@ -1,6 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import type { Provider } from "../providers/provider";
-import type { ContainerSource } from "./ports";
+import type { ContainerSource, Provider } from "./ports";
 import { mergeDesired, Reconciler } from "./reconciler";
 import type { ContainerInfo, DesiredState, DnsRecord, TunnelRoute } from "./types";
 
