@@ -62,6 +62,11 @@ jobs:
 
       - uses: docker/setup-buildx-action@v4
 
+      # Releases rewrite x-casaos.version in this file (#49); keep it a valid
+      # compose file so the store never receives a broken template.
+      - name: Validate the CasaOS template
+        run: docker compose -f templates/casaos/dockroute/docker-compose.yml config -q
+
       - name: Build image (no push)
         uses: docker/build-push-action@v7
         with:
