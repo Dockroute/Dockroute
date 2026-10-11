@@ -1,6 +1,5 @@
-import type { Provider } from "../providers/provider";
 import { desiredFromContainer, type ParseOptions } from "./labels";
-import type { ContainerSource } from "./ports";
+import type { ContainerSource, Provider } from "./ports";
 import type { DesiredState, DnsRecord, TunnelRoute } from "./types";
 
 /**

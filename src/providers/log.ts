@@ -1,5 +1,6 @@
+import type { Provider } from "../core/ports";
 import type { DesiredState } from "../core/types";
-import { type Provider, registerProvider } from "./provider";
+import { registerProvider } from "./provider";
 
 /** Dry-run provider: prints the desired state instead of writing DNS. */
 class LogProvider implements Provider {
