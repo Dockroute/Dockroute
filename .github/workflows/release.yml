@@ -67,6 +67,7 @@ jobs:
       # Move past 9.x only once release-notes-generator depends on writer@9.
       RELEASE_PLUGINS: |
         @semantic-release/changelog@7
+        @semantic-release/exec@7
         @semantic-release/git@11
         conventional-changelog-conventionalcommits@9.3.1
     outputs:
@@ -87,6 +88,19 @@ jobs:
         with:
           fetch-depth: 0
           token: ${{ steps.app-token.outputs.token }}
+
+      # The exec plugin's prepare step runs scripts/bump-casaos-version.ts, so
+      # the real release needs Bun, pinned to the Dockerfile like the verify job.
+      - name: Resolve Bun version from the Dockerfile
+        id: bun
+        run: |
+          version=$(sed -n 's|^FROM oven/bun:\([^@ ]*\).*|\1|p' Dockerfile | head -1)
+          [ -n "$version" ] || { echo "::error::could not read the Bun version from the Dockerfile"; exit 1; }
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: ${{ steps.bun.outputs.version }}
 
       # Empty release notes fail nothing on their own, so they went unnoticed for
       # six releases. Generating them once in dry-run mode turns that into a red
