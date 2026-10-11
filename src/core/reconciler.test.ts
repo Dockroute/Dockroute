@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
-import type { DockerClient } from "../docker/client";
 import type { Provider } from "../providers/provider";
+import type { ContainerSource } from "./ports";
 import { mergeDesired, Reconciler } from "./reconciler";
 import type { ContainerInfo, DesiredState, DnsRecord, TunnelRoute } from "./types";
 
@@ -30,8 +30,12 @@ class FakeProvider implements Provider {
   }
 }
 
-function fakeDocker(containers: ContainerInfo[]): DockerClient {
-  return { listRunningContainers: async () => containers } as unknown as DockerClient;
+class FakeContainerSource implements ContainerSource {
+  constructor(private containers: ContainerInfo[] = []) {}
+
+  async listRunningContainers(): Promise<ContainerInfo[]> {
+    return this.containers;
+  }
 }
 
 describe("mergeDesired", () => {
@@ -93,7 +97,7 @@ describe("Reconciler", () => {
   test("hands the provider the merged desired state from all containers", async () => {
     const provider = new FakeProvider();
     const reconciler = new Reconciler(
-      fakeDocker([
+      new FakeContainerSource([
         container("c1", { "dockroute.enabled": "true", "dockroute.hostname": "a.example.com" }),
         container("c2", {
           "dockroute.enabled": "true",
@@ -115,11 +119,36 @@ describe("Reconciler", () => {
   test("survives a provider error and keeps reconciling", async () => {
     const provider = new FakeProvider();
     provider.failNext = true;
-    const reconciler = new Reconciler(fakeDocker([]), provider, {});
+    const reconciler = new Reconciler(new FakeContainerSource(), provider, {});
 
     await reconciler.reconcile();
     await reconciler.reconcile();
 
     expect(provider.synced).toHaveLength(1);
+  });
+
+  test("notifies onReconciled after each successful sync", async () => {
+    let reconciled = 0;
+    const reconciler = new Reconciler(new FakeContainerSource(), new FakeProvider(), {}, () => {
+      reconciled++;
+    });
+
+    await reconciler.reconcile();
+    await reconciler.reconcile();
+
+    expect(reconciled).toBe(2);
+  });
+
+  test("does not notify onReconciled when the provider sync fails", async () => {
+    const provider = new FakeProvider();
+    provider.failNext = true;
+    let reconciled = 0;
+    const reconciler = new Reconciler(new FakeContainerSource(), provider, {}, () => {
+      reconciled++;
+    });
+
+    await reconciler.reconcile();
+
+    expect(reconciled).toBe(0);
   });
 });

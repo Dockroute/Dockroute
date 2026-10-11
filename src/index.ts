@@ -4,6 +4,7 @@ import { DockerClient } from "./docker/client";
 import { describeDockerEndpoint } from "./docker/endpoint";
 import { diagnoseSocketAccess } from "./docker/preflight";
 import { Watcher } from "./docker/watcher";
+import { touchHeartbeat } from "./health";
 import { createProvider } from "./providers/provider";
 import "./providers/log";
 import "./providers/cloudflare/cloudflare";
@@ -25,7 +26,9 @@ try {
   process.exit(1);
 }
 const provider = createProvider(config.provider, config);
-const reconciler = new Reconciler(docker, provider, { defaultTarget: config.defaultTarget });
+const reconciler = new Reconciler(docker, provider, { defaultTarget: config.defaultTarget }, () =>
+  touchHeartbeat(),
+);
 
 const watcher = new Watcher(docker, reconciler, config.resyncSeconds);
 
