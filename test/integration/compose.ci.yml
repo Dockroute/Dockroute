@@ -1,0 +1,9 @@
+# Overrides applied on top of the README's socket-proxy example: run the image
+# built from this checkout with the dry-run provider, so no DNS API is called.
+services:
+  dockroute:
+    image: dockroute:ci
+    pull_policy: never
+    environment:
+      DOCKROUTE_PROVIDER: log
+      CLOUDFLARE_API_TOKEN: ""
