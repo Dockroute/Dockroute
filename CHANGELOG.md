@@ -1,3 +1,9 @@
+## [0.6.1](https://github.com/Dockroute/Dockroute/compare/v0.6.0...v0.6.1) (2026-10-11)
+
+### Bug Fixes
+
+* **docker:** fail closed in entrypoint and tighten DOCKER_HOST parsing ([#63](https://github.com/Dockroute/Dockroute/issues/63)) ([919ec79](https://github.com/Dockroute/Dockroute/commit/919ec79cac66655f04472aed526df03858dac74d)), closes [#62](https://github.com/Dockroute/Dockroute/issues/62)
+
 ## [0.6.0](https://github.com/Dockroute/Dockroute/compare/v0.5.1...v0.6.0) (2026-10-11)
 
 ### Features
