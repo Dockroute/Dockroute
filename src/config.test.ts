@@ -84,6 +84,53 @@ describe("loadConfig", () => {
     expect(config.domainFilter).toEqual(["example.com", "example.org"]);
   });
 
+  test("blank optional values fall back to their defaults", () => {
+    for (const blank of ["", "   "]) {
+      const config = loadConfig({
+        DOCKROUTE_POLICY: blank,
+        DOCKROUTE_PROVIDER: blank,
+        DOCKROUTE_OWNER_ID: blank,
+        DOCKROUTE_TXT_PREFIX: blank,
+        DOCKROUTE_DEFAULT_TARGET: blank,
+      });
+      expect(config).toMatchObject({
+        policy: "sync",
+        provider: "log",
+        ownerId: "default",
+        txtPrefix: "_dockroute-",
+      });
+      expect(config.defaultTarget).toBeUndefined();
+    }
+  });
+
+  test("keeps non-blank values exactly as given", () => {
+    const config = loadConfig({ DOCKROUTE_OWNER_ID: "edge-1", DOCKROUTE_TXT_PREFIX: "_dr-" });
+    expect(config.ownerId).toBe("edge-1");
+    expect(config.txtPrefix).toBe("_dr-");
+  });
+
+  test("a blank API token does not satisfy the cloudflare provider", () => {
+    for (const blank of ["", "   "]) {
+      expect(() =>
+        loadConfig({ DOCKROUTE_PROVIDER: "cloudflare", CLOUDFLARE_API_TOKEN: blank }),
+      ).toThrow(/CLOUDFLARE_API_TOKEN/);
+    }
+  });
+
+  test("blank Cloudflare account and tunnel ids mean unset", () => {
+    const config = loadConfig({
+      DOCKROUTE_PROVIDER: "cloudflare",
+      CLOUDFLARE_API_TOKEN: "token",
+      CLOUDFLARE_ACCOUNT_ID: "",
+      CLOUDFLARE_TUNNEL_ID: "  ",
+    });
+    expect(config.cloudflare).toEqual({
+      apiToken: "token",
+      accountId: undefined,
+      tunnelId: undefined,
+    });
+  });
+
   test("requires an API token for the cloudflare provider", () => {
     expect(() => loadConfig({ DOCKROUTE_PROVIDER: "cloudflare" })).toThrow(/CLOUDFLARE_API_TOKEN/);
     const config = loadConfig({
