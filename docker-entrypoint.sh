@@ -8,6 +8,26 @@
 # override), the script is a no-op passthrough.
 set -eu
 
+# Bun needs SSE4.2 and POPCNT on x86-64. A VM CPU model that hides them, such
+# as QEMU's kvm64/qemu64, makes Bun spin at 100% CPU without logging anything
+# (or crash with SIGILL on genuinely old CPUs), so refuse to start with a clear
+# message instead. Only x86 cpuinfo has a "flags" line: other architectures and
+# an unreadable cpuinfo skip the check. DOCKROUTE_CPUINFO is a test hook.
+cpu_flags="$(sed -n 's/^flags[[:space:]]*:\(.*\)$/\1/p' "${DOCKROUTE_CPUINFO:-/proc/cpuinfo}" 2>/dev/null | head -n 1)" || cpu_flags=""
+if [ -n "$cpu_flags" ]; then
+  missing=""
+  for flag in sse4_2 popcnt; do
+    case " $cpu_flags " in
+      *" $flag "*) ;;
+      *) missing="$missing $flag" ;;
+    esac
+  done
+  if [ -n "$missing" ]; then
+    echo "dockroute: unsupported CPU, missing$missing. The Bun runtime needs SSE4.2 and POPCNT and hangs without them. In a VM, set the CPU type to \"host\" (or x86-64-v2 or newer) and restart it." >&2
+    exit 1
+  fi
+fi
+
 trim() {
   value="$1"
   value="${value#"${value%%[![:space:]]*}"}"
