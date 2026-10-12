@@ -121,6 +121,22 @@ jobs:
           tags: dockroute:ci
           cache-from: type=gha
 
+      # The image must boot to its startup line, and refuse a CPU without
+      # SSE4.2/POPCNT up front instead of hanging inside Bun.
+      - name: Boot smoke test
+        run: test/integration/boot-smoke.sh dockroute:ci
+
+      # Proves the smoke test catches a stuck boot: an image whose entrypoint
+      # spins forever, like Bun did on a kvm64 CPU, must make it fail.
+      - name: Boot smoke test fails on a stuck boot
+        run: |
+          printf 'FROM dockroute:ci\nENTRYPOINT ["sh", "-c", "while :; do :; done"]\n' |
+            docker build -q -t dockroute:stuck - >/dev/null
+          if BOOT_TIMEOUT=10 test/integration/boot-smoke.sh dockroute:stuck; then
+            echo "::error::the boot smoke test passed on an image that never boots"
+            exit 1
+          fi
+
       # Runs the README's socket-proxy compose example against the runner's
       # Docker engine: discovery through the proxy, no Docker group for the
       # app, and every endpoint beyond the three DockRoute uses denied.
