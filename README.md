@@ -237,6 +237,7 @@ bun run lint        # Biome — bun run lint:fix to auto-fix
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for the ground rules (ownership
 safety, anti-corruption layer, testing style) and how to add a provider.
+Participation is governed by our [Code of Conduct](CODE_OF_CONDUCT.md).
 
 ## License
 

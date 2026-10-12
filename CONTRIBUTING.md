@@ -1,7 +1,8 @@
 # Contributing to DockRoute
 
 Thanks for your interest! Contributions of all kinds are welcome: bug
-reports, docs, code and design discussions.
+reports, docs, code and design discussions. Everyone is expected to follow
+our [Code of Conduct](CODE_OF_CONDUCT.md).
 
 ## Development setup
 
