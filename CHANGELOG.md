@@ -1,3 +1,9 @@
+## [0.7.4](https://github.com/Dockroute/Dockroute/compare/v0.7.3...v0.7.4) (2026-10-12)
+
+### Bug Fixes
+
+* **docker:** switch the base image to Alpine to drop Debian's unfixed CVEs ([#77](https://github.com/Dockroute/Dockroute/issues/77)) ([7844190](https://github.com/Dockroute/Dockroute/commit/78441907eb96951a1161c91c9effe4d1eb4cccf4)), closes [#76](https://github.com/Dockroute/Dockroute/issues/76)
+
 ## [0.7.3](https://github.com/Dockroute/Dockroute/compare/v0.7.2...v0.7.3) (2026-10-12)
 
 ### Bug Fixes
