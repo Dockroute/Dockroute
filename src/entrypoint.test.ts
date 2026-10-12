@@ -105,12 +105,12 @@ describe("docker-entrypoint.sh", () => {
 });
 
 describe("docker-entrypoint.sh CPU preflight", () => {
-  test("refuses to start on a QEMU kvm64 CPU, which hides SSE4.2 and POPCNT", () => {
+  test("refuses to start on a QEMU kvm64 CPU, listing every missing x86-64-v2 flag", () => {
     const result = spawnEntrypoint({ DOCKROUTE_CPUINFO: join(CPUINFO, "qemu-kvm64.txt") });
 
     expect(result.exitCode).not.toBe(0);
     expect(result.stdout).toBe("");
-    expect(result.stderr).toContain("sse4_2 popcnt");
+    expect(result.stderr).toContain("missing ssse3 sse4_1 sse4_2 popcnt");
     expect(result.stderr).toContain('CPU type to "host"');
     expect(result.elapsedMs).toBeLessThan(1000);
   });
@@ -128,6 +128,28 @@ describe("docker-entrypoint.sh CPU preflight", () => {
     expect(result.elapsedMs).toBeLessThan(1000);
   });
 
+  test("refuses to start when only SSSE3 is missing", () => {
+    const cpuinfo = join(dir, "no-ssse3.txt");
+    writeFileSync(cpuinfo, readFileSync(MODERN_CPU, "utf8").replace(" ssse3 ", " "));
+
+    const result = spawnEntrypoint({ DOCKROUTE_CPUINFO: cpuinfo });
+
+    expect(result.exitCode).not.toBe(0);
+    expect(result.stdout).toBe("");
+    expect(result.stderr).toContain("missing ssse3.");
+  });
+
+  test("refuses to start when only SSE4.1 is missing", () => {
+    const cpuinfo = join(dir, "no-sse4_1.txt");
+    writeFileSync(cpuinfo, readFileSync(MODERN_CPU, "utf8").replace(" sse4_1 ", " "));
+
+    const result = spawnEntrypoint({ DOCKROUTE_CPUINFO: cpuinfo });
+
+    expect(result.exitCode).not.toBe(0);
+    expect(result.stdout).toBe("");
+    expect(result.stderr).toContain("missing sse4_1.");
+  });
+
   test("also refuses to start when not started as root", () => {
     const result = spawnEntrypoint({ DOCKROUTE_CPUINFO: join(CPUINFO, "qemu-kvm64.txt") }, "1000");
 
@@ -135,7 +157,7 @@ describe("docker-entrypoint.sh CPU preflight", () => {
     expect(result.stdout).toBe("");
   });
 
-  test("starts the app on a CPU with SSE4.2 and POPCNT", () => {
+  test("starts the app on a CPU with every x86-64-v2 flag it checks", () => {
     const result = spawnEntrypoint({ DOCKER_SOCK: socketPath });
 
     expect(result.exitCode).toBe(0);
