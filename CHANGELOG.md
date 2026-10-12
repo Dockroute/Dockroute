@@ -1,3 +1,9 @@
+## [0.7.3](https://github.com/Dockroute/Dockroute/compare/v0.7.2...v0.7.3) (2026-10-12)
+
+### Bug Fixes
+
+* **docker:** require every x86-64-v2 flag Bun needs and bump Bun to 1.4.3 ([#76](https://github.com/Dockroute/Dockroute/issues/76)) ([04ec7bd](https://github.com/Dockroute/Dockroute/commit/04ec7bd34eb4bf6037f647d9ab90373897b0bfd9)), closes [#74](https://github.com/Dockroute/Dockroute/issues/74) [#74](https://github.com/Dockroute/Dockroute/issues/74)
+
 ## [0.7.2](https://github.com/Dockroute/Dockroute/compare/v0.7.1...v0.7.2) (2026-10-12)
 
 ### Bug Fixes

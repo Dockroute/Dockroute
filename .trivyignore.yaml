@@ -1,0 +1,14 @@
+# CVEs deliberately accepted by the image scan gate (ci.yml, release.yml),
+# which fails on any CRITICAL/HIGH finding, fixed upstream or not.
+#
+# Every entry needs the CVE id, a statement explaining why it does not affect
+# DockRoute (or why it cannot be fixed yet), and an expired_at review date.
+# Once expired the entry stops applying and the gate fails again, forcing a
+# fresh decision. Keep the list empty when nothing needs accepting.
+#
+# Example:
+#   vulnerabilities:
+#     - id: CVE-2026-00000
+#       statement: busybox wget is never run; no fix in Alpine 3.24 yet.
+#       expired_at: 2026-12-01
+vulnerabilities: []

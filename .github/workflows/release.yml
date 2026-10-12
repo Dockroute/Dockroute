@@ -28,7 +28,7 @@ jobs:
       - name: Resolve Bun version from the Dockerfile
         id: bun
         run: |
-          version=$(sed -n 's|^FROM oven/bun:\([^@ ]*\).*|\1|p' Dockerfile | head -1)
+          version=$(sed -n 's|^FROM oven/bun:\([^@ -]*\).*|\1|p' Dockerfile | head -1)
           [ -n "$version" ] || { echo "::error::could not read the Bun version from the Dockerfile"; exit 1; }
           echo "version=$version" >> "$GITHUB_OUTPUT"
 
@@ -94,7 +94,7 @@ jobs:
       - name: Resolve Bun version from the Dockerfile
         id: bun
         run: |
-          version=$(sed -n 's|^FROM oven/bun:\([^@ ]*\).*|\1|p' Dockerfile | head -1)
+          version=$(sed -n 's|^FROM oven/bun:\([^@ -]*\).*|\1|p' Dockerfile | head -1)
           [ -n "$version" ] || { echo "::error::could not read the Bun version from the Dockerfile"; exit 1; }
           echo "version=$version" >> "$GITHUB_OUTPUT"
 
@@ -193,7 +193,7 @@ jobs:
           tags: dockroute:release-scan
           cache-from: type=gha
           cache-to: type=gha,mode=max
-          # Never cache the release stage: its apt-get upgrade must see new CVE fixes
+          # Never cache the release stage: its apk upgrade must see new CVE fixes
           no-cache-filters: release
 
       - name: Scan image with Trivy (gate)
@@ -202,7 +202,7 @@ jobs:
           image-ref: dockroute:release-scan
           format: table
           severity: CRITICAL,HIGH
-          ignore-unfixed: true
+          trivyignores: .trivyignore.yaml
           exit-code: "1"
 
       - name: Image metadata
@@ -227,7 +227,7 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
-          # Never cache the release stage: its apt-get upgrade must see new CVE fixes
+          # Never cache the release stage: its apk upgrade must see new CVE fixes
           no-cache-filters: release
 
       # Docker Hub never reads the GitHub README, so push it as the repo

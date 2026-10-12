@@ -24,7 +24,7 @@ jobs:
       - name: Resolve Bun version from the Dockerfile
         id: bun
         run: |
-          version=$(sed -n 's|^FROM oven/bun:\([^@ ]*\).*|\1|p' Dockerfile | head -1)
+          version=$(sed -n 's|^FROM oven/bun:\([^@ -]*\).*|\1|p' Dockerfile | head -1)
           [ -n "$version" ] || { echo "::error::could not read the Bun version from the Dockerfile"; exit 1; }
           echo "version=$version" >> "$GITHUB_OUTPUT"
 
@@ -76,7 +76,7 @@ jobs:
           tags: dockroute:ci
           cache-from: type=gha
           cache-to: type=gha,mode=max
-          # Never cache the release stage: its apt-get upgrade must see new CVE fixes
+          # Never cache the release stage: its apk upgrade must see new CVE fixes
           no-cache-filters: release
 
       - name: Scan image with Trivy
@@ -86,7 +86,7 @@ jobs:
           format: sarif
           output: trivy.sarif
           severity: CRITICAL,HIGH
-          ignore-unfixed: true
+          trivyignores: .trivyignore.yaml
 
       - name: Upload Trivy results to GitHub Security
         uses: github/codeql-action/upload-sarif@v4
@@ -95,13 +95,15 @@ jobs:
           sarif_file: trivy.sarif
           category: trivy-image
 
-      - name: Fail on fixable CRITICAL/HIGH vulnerabilities
+      # Unfixed CVEs fail too: an unfixed HIGH must be either removed from the
+      # image or accepted on purpose in .trivyignore.yaml, never pass quietly.
+      - name: Fail on CRITICAL/HIGH vulnerabilities, fixed or not
         uses: aquasecurity/trivy-action@v0.36.0
         with:
           image-ref: dockroute:ci
           format: table
           severity: CRITICAL,HIGH
-          ignore-unfixed: true
+          trivyignores: .trivyignore.yaml
           exit-code: "1"
 
   integration:
