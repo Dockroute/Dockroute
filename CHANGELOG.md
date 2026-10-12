@@ -1,3 +1,9 @@
+## [0.7.2](https://github.com/Dockroute/Dockroute/compare/v0.7.1...v0.7.2) (2026-10-12)
+
+### Bug Fixes
+
+* **docker:** refuse to start on CPUs without SSE4.2/POPCNT ([#74](https://github.com/Dockroute/Dockroute/issues/74)) ([f04a9f5](https://github.com/Dockroute/Dockroute/commit/f04a9f5e8af5fc64d82380adae0121a37c6287e5))
+
 ## [0.7.1](https://github.com/Dockroute/Dockroute/compare/v0.7.0...v0.7.1) (2026-10-11)
 
 ### Bug Fixes
