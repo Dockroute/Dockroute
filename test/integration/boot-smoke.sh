@@ -12,6 +12,7 @@ cd "$(dirname "$0")/../.."
 IMAGE="${1:-dockroute:ci}"
 BOOT_TIMEOUT="${BOOT_TIMEOUT:-30}"
 NAME=dockroute-boot-smoke
+PREFLIGHT_NAME=dockroute-boot-smoke-preflight
 STARTED="dockroute starting (provider=log"
 
 failed=1
@@ -29,7 +30,8 @@ cleanup() {
   if [ "$failed" = 1 ]; then
     docker logs "$NAME" 2>&1 || true
   fi
-  docker rm -f "$NAME" >/dev/null 2>&1 || true
+  # A hung PID 1 ignores the SIGTERM from `timeout`, so remove both by name.
+  docker rm -f "$NAME" "$PREFLIGHT_NAME" >/dev/null 2>&1 || true
 }
 trap cleanup EXIT
 
@@ -51,7 +53,7 @@ pass "booted to the startup line in under ${i}s"
 docker rm -f "$NAME" >/dev/null
 
 # 2. The CPU preflight refuses a QEMU kvm64 CPU with a clear message.
-output="$(timeout 20 docker run --rm \
+output="$(timeout 20 docker run --rm --name "$PREFLIGHT_NAME" \
   -e DOCKROUTE_CPUINFO=/cpuinfo \
   -v "$PWD/test/fixtures/cpuinfo/qemu-kvm64.txt:/cpuinfo:ro" \
   "$IMAGE" 2>&1)" && fail "the container started on a CPU without SSE4.2/POPCNT"

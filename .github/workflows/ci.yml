@@ -127,15 +127,22 @@ jobs:
         run: test/integration/boot-smoke.sh dockroute:ci
 
       # Proves the smoke test catches a stuck boot: an image whose entrypoint
-      # spins forever, like Bun did on a kvm64 CPU, must make it fail.
+      # spins forever, like Bun did on a kvm64 CPU, must make it fail, and for
+      # that reason: a broken build or run must not turn this step green.
       - name: Boot smoke test fails on a stuck boot
         run: |
           printf 'FROM dockroute:ci\nENTRYPOINT ["sh", "-c", "while :; do :; done"]\n' |
             docker build -q -t dockroute:stuck - >/dev/null
-          if BOOT_TIMEOUT=10 test/integration/boot-smoke.sh dockroute:stuck; then
+          if out="$(BOOT_TIMEOUT=10 test/integration/boot-smoke.sh dockroute:stuck 2>&1)"; then
+            echo "$out"
             echo "::error::the boot smoke test passed on an image that never boots"
             exit 1
           fi
+          echo "$out"
+          echo "$out" | grep -qF "the boot is stuck" || {
+            echo "::error::the boot smoke test failed, but not because the boot is stuck"
+            exit 1
+          }
 
       # Runs the README's socket-proxy compose example against the runner's
       # Docker engine: discovery through the proxy, no Docker group for the
