@@ -229,3 +229,29 @@ jobs:
           cache-to: type=gha,mode=max
           # Never cache the release stage: its apk upgrade must see new CVE fixes
           no-cache-filters: release
+
+      # Docker Hub never reads the GitHub README, so push it as the repo
+      # overview. Its API needs a personal access token with Read/Write/Delete
+      # scope (the push token is not enough); skip until that secret exists.
+      - name: Check Docker Hub description token
+        id: dockerhub_description
+        if: steps.dockerhub.outputs.enabled == 'true'
+        env:
+          DOCKERHUB_DESCRIPTION_TOKEN: ${{ secrets.DOCKERHUB_DESCRIPTION_TOKEN }}
+        run: |
+          if [ -n "$DOCKERHUB_DESCRIPTION_TOKEN" ]; then
+            echo "enabled=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "::notice::DOCKERHUB_DESCRIPTION_TOKEN not set; Docker Hub overview not updated."
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Update Docker Hub overview from README
+        if: steps.dockerhub_description.outputs.enabled == 'true'
+        uses: peter-evans/dockerhub-description@v5
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_DESCRIPTION_TOKEN }}
+          repository: dockroute/dockroute
+          readme-filepath: ./README.md
+          enable-url-completion: true
