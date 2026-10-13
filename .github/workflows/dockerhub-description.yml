@@ -1,0 +1,51 @@
+name: Docker Hub description
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - README.md
+      - .github/workflows/dockerhub-description.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: dockerhub-description
+  cancel-in-progress: true
+
+jobs:
+  sync:
+    name: Sync Docker Hub overview from README
+    runs-on: ubuntu-latest
+    steps:
+      # Docker Hub never reads the GitHub README, so push it as the repo
+      # overview. Its API needs a personal access token with Read/Write/Delete
+      # scope (the push token is not enough); skip until that secret exists.
+      - name: Check Docker Hub credentials
+        id: dockerhub
+        env:
+          DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+          DOCKERHUB_DESCRIPTION_TOKEN: ${{ secrets.DOCKERHUB_DESCRIPTION_TOKEN }}
+        run: |
+          if [ -n "$DOCKERHUB_USERNAME" ] && [ -n "$DOCKERHUB_DESCRIPTION_TOKEN" ]; then
+            echo "enabled=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "::notice::DOCKERHUB_USERNAME/DOCKERHUB_DESCRIPTION_TOKEN not set; Docker Hub overview not updated."
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: actions/checkout@v7
+        if: steps.dockerhub.outputs.enabled == 'true'
+
+      - name: Update Docker Hub overview from README
+        if: steps.dockerhub.outputs.enabled == 'true'
+        uses: peter-evans/dockerhub-description@v5
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_DESCRIPTION_TOKEN }}
+          repository: dockroute/dockroute
+          short-description: "External-DNS for plain Docker hosts: DNS records from container labels."
+          readme-filepath: ./README.md
+          enable-url-completion: true
