@@ -130,7 +130,7 @@ DOCKROUTE_DEFAULT_TARGET=192.168.1.10 bun start   # provider=log by default
 | `dockroute.hostname`           | yes      | —                          | FQDN(s), comma-separated          |
 | `dockroute.type`               | no       | `A`                        | `A`, `AAAA` or `CNAME`            |
 | `dockroute.target`             | no       | `DOCKROUTE_DEFAULT_TARGET` | Record value; must match `dockroute.type` (IPv4 / IPv6 / hostname) |
-| `dockroute.ttl`                | no       | `300`                      | TTL in seconds                    |
+| `dockroute.ttl`                | no       | `300`                      | TTL in whole seconds              |
 | `dockroute.tunnel.service`     | no       | —                          | Origin URL; publish via Cloudflare Tunnel instead of a plain record |
 | `dockroute.cloudflare.proxied` | no       | `false`                    | Proxy plain records through Cloudflare |
 
@@ -208,7 +208,7 @@ below, fix that entry, and the next reconcile will try it again.
 | `[labels] <container>: unsupported record type "<type>", skipping` | `dockroute.type` is not supported. | Set it to `A`, `AAAA` or `CNAME`. |
 | `[labels] <container>: no dockroute.target and no default target, skipping` | A plain DNS record has no target. | Add `dockroute.target` or set `DOCKROUTE_DEFAULT_TARGET`. |
 | `[labels] <container>: dockroute.target "<target>" is not a valid <requirement>, skipping` | The target does not match `dockroute.type`: `A` needs an IPv4 address, `AAAA` an IPv6 address, and `CNAME` a hostname rather than an IP. | Correct `dockroute.target`, or `DOCKROUTE_DEFAULT_TARGET` when the container inherits it, or set `dockroute.type` to the type that matches the value. |
-| `[labels] <container>: invalid dockroute.ttl "<ttl>", using 300` | The TTL is not a positive number, so DockRoute falls back to 300 seconds. | Set `dockroute.ttl` to a positive numeric value, or omit it to use the default. |
+| `[labels] <container>: invalid dockroute.ttl "<ttl>", using 300` | The TTL is not a positive whole number of seconds (e.g. `300.5`, `1e3`, `0x10`), so DockRoute falls back to 300 seconds. | Set `dockroute.ttl` to a positive integer such as `60`, or omit it to use the default. |
 | `[reconciler] duplicate desired entry <type>:<hostname>: first container wins, skipping entry from <source>` | More than one container claims the same hostname and record type. | Keep that claim on one container only; the first container in the reconcile wins. |
 | `[reconciler] duplicate hostname <hostname>: already published via tunnel, skipping <type> record from <source>` | The same hostname is requested as both a tunnel route and a plain DNS record. | Choose one publication method and remove the duplicate claim; the tunnel route wins the reconcile. |
 | `[cloudflare] <hostname>: no matching zone, skipping` | None of the Cloudflare zones visible after `DOCKROUTE_DOMAIN_FILTER` matches the hostname. | Check the hostname, `DOCKROUTE_DOMAIN_FILTER`, and that the API token can access the intended zone. |
