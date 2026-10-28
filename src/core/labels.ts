@@ -29,6 +29,7 @@ export function desiredFromContainer(
   if (labels[`${PREFIX}enabled`] !== "true") return emptyDesiredState();
 
   const name = container.Names?.[0] ?? container.Id.slice(0, 12);
+  warnUnknownKeys(name, labels);
 
   const hostnames = (labels[`${PREFIX}hostname`] ?? "")
     .split(",")
@@ -148,6 +149,17 @@ function isValidServiceUrl(service: string): boolean {
     return TUNNEL_SERVICE_SCHEMES.includes(new URL(service).protocol);
   } catch {
     return false;
+  }
+}
+
+/** Warn once per unknown undotted dockroute.<key> (likely typos). Dotted
+ * suffixes stay provider hints and are left alone. */
+function warnUnknownKeys(name: string, labels: Record<string, string>): void {
+  for (const key of Object.keys(labels)) {
+    if (!key.startsWith(PREFIX)) continue;
+    const suffix = key.slice(PREFIX.length);
+    if (suffix.includes(".") || KNOWN_KEYS.has(suffix)) continue;
+    console.warn(`[labels] ${name}: unknown label ${PREFIX}${suffix} (typo?), ignoring`);
   }
 }
 
