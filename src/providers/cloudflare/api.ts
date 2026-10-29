@@ -125,8 +125,10 @@ export class CloudflareFetchApi implements CloudflareApi {
 
     const payload = (await res.json().catch(() => null)) as CfResponse<T> | null;
     if (!res.ok || !payload?.success) {
-      const details =
-        payload?.errors?.map((e) => `${e.code}: ${e.message}`).join("; ") ?? `HTTP ${res.status}`;
+      // Always include the HTTP status. An empty `errors` array used to make
+      // `.join()` yield "" (not nullish), so the message ended with "— " alone.
+      const codes = (payload?.errors ?? []).map((e) => `${e.code}: ${e.message}`).join("; ");
+      const details = codes ? `HTTP ${res.status}; ${codes}` : `HTTP ${res.status}`;
       throw new Error(`Cloudflare API ${method} ${path} failed — ${details}`);
     }
     return payload;
