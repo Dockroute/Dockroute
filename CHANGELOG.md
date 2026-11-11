@@ -1,3 +1,9 @@
+## [0.7.6](https://github.com/Dockroute/Dockroute/compare/v0.7.5...v0.7.6) (2026-11-11)
+
+### Bug Fixes
+
+* **labels:** reject a non-integer dockroute.ttl ([#91](https://github.com/Dockroute/Dockroute/issues/91)) ([3454858](https://github.com/Dockroute/Dockroute/commit/3454858a0d6f6c4d398c87b5964847a52d10a5c2)), closes [#80](https://github.com/Dockroute/Dockroute/issues/80)
+
 ## [0.7.5](https://github.com/Dockroute/Dockroute/compare/v0.7.4...v0.7.5) (2026-11-11)
 
 ### Bug Fixes
