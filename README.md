@@ -153,6 +153,26 @@ DOCKROUTE_DEFAULT_TARGET=192.168.1.10 bun start   # provider=log by default
 | `CLOUDFLARE_TUNNEL_ID`     | —                      | For tunnel publishing (existing tunnel, you run `cloudflared`) |
 | `DOCKROUTE_HEARTBEAT_PATH` | `/tmp/dockroute-heartbeat` | Where the reconcile loop writes its liveness heartbeat (read by the image's `HEALTHCHECK`) |
 
+### Docker secrets
+
+`CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID` and `CLOUDFLARE_TUNNEL_ID` can
+also be read from a file. Set `<name>_FILE` to the desired file path.
+
+```yaml
+services:
+  dockroute:
+    …
+    environment:
+      …
+      CLOUDFLARE_API_TOKEN_FILE: /run/secrets/cloudflare_api_token
+    secrets:
+      - cloudflare_api_token
+
+secrets:
+  cloudflare_api_token:
+    file: ./path-on-host/cloudflare_api_token.txt
+```
+
 ## Health check
 
 The image ships a Docker `HEALTHCHECK` (`bun run src/healthcheck.ts`): every

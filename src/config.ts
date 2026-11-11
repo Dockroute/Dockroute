@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { type DockerEndpoint, resolveDockerEndpoint } from "./docker/endpoint";
 import { nonBlank } from "./env";
 
@@ -41,9 +42,9 @@ export function loadConfig(env = process.env): Config {
 
   const provider = nonBlank(env.DOCKROUTE_PROVIDER) ?? "log";
   const cloudflare: CloudflareConfig = {
-    apiToken: nonBlank(env.CLOUDFLARE_API_TOKEN),
-    accountId: nonBlank(env.CLOUDFLARE_ACCOUNT_ID),
-    tunnelId: nonBlank(env.CLOUDFLARE_TUNNEL_ID),
+    apiToken: secretFromFileOrVariable(env, "CLOUDFLARE_API_TOKEN"),
+    accountId: secretFromFileOrVariable(env, "CLOUDFLARE_ACCOUNT_ID"),
+    tunnelId: secretFromFileOrVariable(env, "CLOUDFLARE_TUNNEL_ID"),
   };
   if (provider === "cloudflare" && !cloudflare.apiToken) {
     throw new Error("CLOUDFLARE_API_TOKEN is required when DOCKROUTE_PROVIDER=cloudflare");
@@ -92,4 +93,26 @@ function secondsFromEnv(
     throw new Error(`Invalid ${name} "${raw}". Expected a number of seconds >= ${min}.`);
   }
   return value;
+}
+
+function secretFromFileOrVariable(
+  env: typeof process.env,
+  variableName: string,
+): string | undefined {
+  const plainValue = nonBlank(env[variableName]);
+  const filePath = nonBlank(env[`${variableName}_FILE`]) ?? "";
+
+  if (plainValue && filePath) {
+    throw new Error(`Cannot use ${variableName} and ${variableName}_FILE at the same time.`);
+  }
+
+  if (!plainValue && !filePath) {
+    return undefined;
+  }
+
+  if (plainValue) {
+    return plainValue;
+  }
+
+  return nonBlank(readFileSync(filePath).toString().trim());
 }

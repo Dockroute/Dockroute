@@ -1,4 +1,7 @@
-import { describe, expect, test } from "bun:test";
+import { afterAll, describe, expect, test } from "bun:test";
+import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { loadConfig } from "./config";
 
 describe("loadConfig", () => {
@@ -140,5 +143,74 @@ describe("loadConfig", () => {
       CLOUDFLARE_TUNNEL_ID: "tun",
     });
     expect(config.cloudflare).toEqual({ apiToken: "token", accountId: "acc", tunnelId: "tun" });
+  });
+
+  describe("docker secrets", () => {
+    const supportedEnvVariables = [
+      "CLOUDFLARE_API_TOKEN",
+      "CLOUDFLARE_ACCOUNT_ID",
+      "CLOUDFLARE_TUNNEL_ID",
+    ];
+    const secretsDir = mkdtempSync(join(tmpdir(), "dockroute-secrets-"));
+    const createSecretFile = (filename: string, content: string): string => {
+      const filePath = join(secretsDir, filename);
+
+      writeFileSync(filePath, content);
+
+      return filePath;
+    };
+
+    afterAll(() => {
+      rmSync(secretsDir, { recursive: true });
+    });
+
+    test("reads API token from CLOUDFLARE_API_TOKEN_FILE without trailing newline", () => {
+      const config = loadConfig({
+        DOCKROUTE_PROVIDER: "cloudflare",
+        CLOUDFLARE_API_TOKEN_FILE: createSecretFile("cf_token", "token-without-newline\n"),
+      });
+
+      expect(config.cloudflare.apiToken).toBe("token-without-newline");
+    });
+
+    test("reads supported _FILE variants", () => {
+      const config = loadConfig({
+        DOCKROUTE_PROVIDER: "cloudflare",
+        CLOUDFLARE_API_TOKEN_FILE: createSecretFile("cf_token", "cloudflare-token\n"),
+        CLOUDFLARE_ACCOUNT_ID_FILE: createSecretFile("cf_account", "cloudflare-account\n"),
+        CLOUDFLARE_TUNNEL_ID_FILE: createSecretFile("cf_tunnel", "cloudlfare-tunnel"),
+      });
+
+      expect(config.cloudflare).toEqual({
+        apiToken: "cloudflare-token",
+        accountId: "cloudflare-account",
+        tunnelId: "cloudlfare-tunnel",
+      });
+    });
+
+    test.each(
+      supportedEnvVariables.flatMap((envName) =>
+        ["", " ", "\n"].map((emptyContent) => [envName, emptyContent]),
+      ),
+    )("throw an error when %s and %s_FILE are both set", (envName) => {
+      expect(() =>
+        loadConfig({
+          DOCKROUTE_PROVIDER: "cloudflare",
+          [envName]: "plain-value",
+          [`${envName}_FILE`]: createSecretFile(envName, "secret-from-file"),
+        }),
+      ).toThrow();
+    });
+
+    test.each(supportedEnvVariables)("throw an error when %s_FILE is empty", (envName) => {
+      ["", " ", "     ", "\n"].forEach((content) => {
+        expect(() =>
+          loadConfig({
+            DOCKROUTE_PROVIDER: "cloudflare",
+            [`${envName}_FILE`]: createSecretFile(envName, content),
+          }),
+        ).toThrow();
+      });
+    });
   });
 });
