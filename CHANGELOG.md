@@ -1,3 +1,9 @@
+## [0.8.0](https://github.com/Dockroute/Dockroute/compare/v0.7.6...v0.8.0) (2026-11-11)
+
+### Features
+
+* **labels:** warn once on unknown undotted dockroute.* keys ([#96](https://github.com/Dockroute/Dockroute/issues/96)) ([67a50a3](https://github.com/Dockroute/Dockroute/commit/67a50a3b86bd93289d9ebb94ba1a5cb9bc923954))
+
 ## [0.7.6](https://github.com/Dockroute/Dockroute/compare/v0.7.5...v0.7.6) (2026-11-11)
 
 ### Bug Fixes
