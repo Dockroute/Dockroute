@@ -177,21 +177,26 @@ describe("desiredFromContainer", () => {
     );
   });
 
-  test("warns and uses the default when an explicit ttl is invalid", () => {
-    warnSpy = spyOn(console, "warn").mockImplementation(() => {});
-    const [record] = desiredFromContainer(
-      container({
-        "dockroute.enabled": "true",
-        "dockroute.hostname": "a.example.com",
-        "dockroute.target": "10.0.0.1",
-        "dockroute.ttl": "5m",
-      }),
-    ).records;
+  test.each(["5m", "300.5", "1e-3", "1e3", "0x10", "0", "-60", ""])(
+    "warns and uses the default when an explicit ttl is invalid (%p)",
+    (rawTtl) => {
+      warnSpy = spyOn(console, "warn").mockImplementation(() => {});
+      const [record] = desiredFromContainer(
+        container({
+          "dockroute.enabled": "true",
+          "dockroute.hostname": "a.example.com",
+          "dockroute.target": "10.0.0.1",
+          "dockroute.ttl": rawTtl,
+        }),
+      ).records;
 
-    expect(record?.ttl).toBe(300);
-    expect(warnSpy).toHaveBeenCalledTimes(1);
-    expect(warnSpy).toHaveBeenCalledWith('[labels] /whoami: invalid dockroute.ttl "5m", using 300');
-  });
+      expect(record?.ttl).toBe(300);
+      expect(warnSpy).toHaveBeenCalledTimes(1);
+      expect(warnSpy).toHaveBeenCalledWith(
+        `[labels] /whoami: invalid dockroute.ttl "${rawTtl}", using 300`,
+      );
+    },
+  );
 
   test("skips when no target is resolvable or type is unsupported", () => {
     expect(
