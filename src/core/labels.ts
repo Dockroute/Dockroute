@@ -4,6 +4,9 @@ import type { ContainerInfo, DesiredState, DnsRecord, RecordType } from "./types
 const PREFIX = "dockroute.";
 const RECORD_TYPES: RecordType[] = ["A", "AAAA", "CNAME"];
 const DEFAULT_TTL = 300;
+// DNS TTLs are whole seconds (RFC 2181 §8). Match the raw label rather than the
+// parsed number: Number() also accepts "300.5", "1e3" and "0x10".
+const TTL_PATTERN = /^[1-9][0-9]*$/;
 const TUNNEL_SERVICE_SCHEMES = ["http:", "https:", "tcp:", "ssh:"];
 
 /** Label keys with a fixed meaning; everything else under dockroute.* with a
@@ -103,10 +106,13 @@ function dnsState(
   }
 
   const rawTtl = labels[`${PREFIX}ttl`];
-  const parsedTtl = Number(rawTtl ?? DEFAULT_TTL);
-  const ttl = Number.isFinite(parsedTtl) && parsedTtl > 0 ? parsedTtl : DEFAULT_TTL;
-  if (rawTtl !== undefined && ttl !== parsedTtl) {
-    console.warn(`[labels] ${name}: invalid dockroute.ttl "${rawTtl}", using ${DEFAULT_TTL}`);
+  let ttl = DEFAULT_TTL;
+  if (rawTtl !== undefined) {
+    if (TTL_PATTERN.test(rawTtl)) {
+      ttl = Number(rawTtl);
+    } else {
+      console.warn(`[labels] ${name}: invalid dockroute.ttl "${rawTtl}", using ${DEFAULT_TTL}`);
+    }
   }
   const providerSpecific = providerHints(labels);
 
