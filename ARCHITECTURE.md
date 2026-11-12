@@ -170,10 +170,10 @@ services:
 | `DOCKROUTE_PROVIDER`       | `log`                  | DNS provider to use                     |
 | `DOCKROUTE_DEFAULT_TARGET` | —                      | Fallback target when label is omitted   |
 | `DOCKROUTE_RESYNC_SECONDS` | `60`                   | Interval of the periodic full reconcile |
-| `DOCKROUTE_OWNER_ID`       | `default`              | Ownership id written into registry TXTs |
+| `DOCKROUTE_OWNER_ID`       | `default`              | Ownership id written into registry TXTs. Trimmed; must not contain `,` (it splits the TXT payload) |
 | `DOCKROUTE_POLICY`         | `sync`                 | `sync`, `upsert-only` or `create-only`  |
 | `DOCKROUTE_DELETE_GRACE_SECONDS` | `60`             | Continuous absence required before a delete runs (`0` = immediate) |
-| `DOCKROUTE_TXT_PREFIX`     | `_dockroute-`          | Registry TXT name prefix                |
+| `DOCKROUTE_TXT_PREFIX`     | `_dockroute-`          | Registry TXT name prefix. Lower-case `a-z`, `0-9`, `_`, `-` only: it must stay inside the first DNS label |
 | `DOCKROUTE_DOMAIN_FILTER`  | —                      | Comma-separated zone allowlist          |
 | `CLOUDFLARE_API_TOKEN`     | —                      | Required for `cloudflare`. Scopes: Zone → DNS → Edit; Account → Cloudflare Tunnel → Edit (tunnel only) |
 | `CLOUDFLARE_ACCOUNT_ID`    | —                      | Required for tunnel features            |
