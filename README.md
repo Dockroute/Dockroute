@@ -143,10 +143,10 @@ DOCKROUTE_DEFAULT_TARGET=192.168.1.10 bun start   # provider=log by default
 | `DOCKROUTE_PROVIDER`       | `log`                  | `log` (dry-run) or `cloudflare`         |
 | `DOCKROUTE_DEFAULT_TARGET` | —                      | Fallback target when label is omitted   |
 | `DOCKROUTE_RESYNC_SECONDS` | `60`                   | Interval of the periodic full reconcile |
-| `DOCKROUTE_OWNER_ID`       | `default`              | Ownership id — lets several instances share a zone safely |
+| `DOCKROUTE_OWNER_ID`       | `default`              | Ownership id — lets several instances share a zone safely. Surrounding spaces are trimmed; must not contain `,` |
 | `DOCKROUTE_POLICY`         | `sync`                 | `sync`, `upsert-only` or `create-only`  |
 | `DOCKROUTE_DELETE_GRACE_SECONDS` | `60`             | How long a record must stay gone before it is deleted (`0` = delete at once) |
-| `DOCKROUTE_TXT_PREFIX`     | `_dockroute-`          | Ownership TXT name prefix               |
+| `DOCKROUTE_TXT_PREFIX`     | `_dockroute-`          | Ownership TXT name prefix. Lower-case `a-z`, `0-9`, `_` and `-` only (no dots) |
 | `DOCKROUTE_DOMAIN_FILTER`  | —                      | Comma-separated zone allowlist          |
 | `CLOUDFLARE_API_TOKEN`     | —                      | Token with Zone→DNS→Edit (+ Account→Cloudflare Tunnel→Edit for tunnels) |
 | `CLOUDFLARE_ACCOUNT_ID`    | —                      | For tunnel publishing                   |

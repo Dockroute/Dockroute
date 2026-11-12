@@ -59,7 +59,7 @@ export function loadConfig(env = process.env): Config {
       DEFAULT_RESYNC_SECONDS,
       1,
     ),
-    ownerId: nonBlank(env.DOCKROUTE_OWNER_ID) ?? "default",
+    ownerId: ownerIdFromEnv(env.DOCKROUTE_OWNER_ID),
     policy: policy as Policy,
     deleteGraceSeconds: secondsFromEnv(
       "DOCKROUTE_DELETE_GRACE_SECONDS",
@@ -67,13 +67,43 @@ export function loadConfig(env = process.env): Config {
       DEFAULT_DELETE_GRACE_SECONDS,
       0,
     ),
-    txtPrefix: nonBlank(env.DOCKROUTE_TXT_PREFIX) ?? "_dockroute-",
+    txtPrefix: txtPrefixFromEnv(env.DOCKROUTE_TXT_PREFIX),
     domainFilter: (env.DOCKROUTE_DOMAIN_FILTER ?? "")
       .split(",")
       .map((d) => d.trim())
       .filter(Boolean),
     cloudflare,
   };
+}
+
+/**
+ * The owner id is written into every ownership TXT and must parse back
+ * unchanged, or DockRoute treats its own records as foreign. Surrounding
+ * whitespace is trimmed (the parser trims it anyway); a comma splits the TXT
+ * payload, so it is rejected. Nothing else is rewritten: the owner id is an
+ * identity, and changing it would orphan existing records.
+ */
+function ownerIdFromEnv(raw: string | undefined): string {
+  const ownerId = nonBlank(raw)?.trim() ?? "default";
+  if (ownerId.includes(",")) {
+    throw new Error(`Invalid DOCKROUTE_OWNER_ID "${ownerId}". It must not contain a comma (",").`);
+  }
+  return ownerId;
+}
+
+/**
+ * The TXT prefix becomes the start of the first DNS label of every ownership
+ * TXT name, and providers return names in lower case. Anything other than one
+ * lower-case label fragment cannot be parsed back.
+ */
+function txtPrefixFromEnv(raw: string | undefined): string {
+  const prefix = nonBlank(raw)?.trim() ?? "_dockroute-";
+  if (!/^[a-z0-9_-]+$/.test(prefix)) {
+    throw new Error(
+      `Invalid DOCKROUTE_TXT_PREFIX "${prefix}". Allowed characters: a-z, 0-9, "_" and "-" (lower case, no dots).`,
+    );
+  }
+  return prefix;
 }
 
 /**

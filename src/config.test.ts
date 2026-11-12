@@ -109,6 +109,33 @@ describe("loadConfig", () => {
     expect(config.txtPrefix).toBe("_dr-");
   });
 
+  test("trims surrounding whitespace from the owner id and TXT prefix", () => {
+    const config = loadConfig({ DOCKROUTE_OWNER_ID: " prod ", DOCKROUTE_TXT_PREFIX: " _dr- " });
+    expect(config.ownerId).toBe("prod");
+    expect(config.txtPrefix).toBe("_dr-");
+  });
+
+  test("keeps owner ids that already round-trip unchanged", () => {
+    for (const ownerId of ["home-lab", "edge-1", "a=b", "my host", "Home-Lab"]) {
+      const config = loadConfig({ DOCKROUTE_OWNER_ID: ownerId });
+      expect(config.ownerId).toBe(ownerId);
+    }
+  });
+
+  test("rejects an owner id containing a comma", () => {
+    expect(() => loadConfig({ DOCKROUTE_OWNER_ID: "a,b" })).toThrow(
+      'Invalid DOCKROUTE_OWNER_ID "a,b". It must not contain a comma (",").',
+    );
+  });
+
+  test("rejects a TXT prefix that is not one lower-case label fragment", () => {
+    for (const prefix of ["_dr.", "_DR-", "dock route", "_dr/"]) {
+      expect(() => loadConfig({ DOCKROUTE_TXT_PREFIX: prefix })).toThrow(
+        `Invalid DOCKROUTE_TXT_PREFIX "${prefix}". Allowed characters: a-z, 0-9, "_" and "-"`,
+      );
+    }
+  });
+
   test("a blank API token does not satisfy the cloudflare provider", () => {
     for (const blank of ["", "   "]) {
       expect(() =>
