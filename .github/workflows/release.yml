@@ -107,7 +107,7 @@ jobs:
       # build before anything is tagged or published.
       - name: Dry run to generate the release notes
         id: dry_run
-        uses: cycjimmy/semantic-release-action@v6
+        uses: cycjimmy/semantic-release-action@v8
         with:
           dry_run: true
           extra_plugins: ${{ env.RELEASE_PLUGINS }}
@@ -132,7 +132,7 @@ jobs:
 
       - name: Run semantic-release
         id: semantic
-        uses: cycjimmy/semantic-release-action@v6
+        uses: cycjimmy/semantic-release-action@v8
         with:
           extra_plugins: ${{ env.RELEASE_PLUGINS }}
         env:

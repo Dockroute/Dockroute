@@ -177,21 +177,26 @@ describe("desiredFromContainer", () => {
     );
   });
 
-  test("warns and uses the default when an explicit ttl is invalid", () => {
-    warnSpy = spyOn(console, "warn").mockImplementation(() => {});
-    const [record] = desiredFromContainer(
-      container({
-        "dockroute.enabled": "true",
-        "dockroute.hostname": "a.example.com",
-        "dockroute.target": "10.0.0.1",
-        "dockroute.ttl": "5m",
-      }),
-    ).records;
+  test.each(["5m", "300.5", "1e-3", "1e3", "0x10", "0", "-60", ""])(
+    "warns and uses the default when an explicit ttl is invalid (%p)",
+    (rawTtl) => {
+      warnSpy = spyOn(console, "warn").mockImplementation(() => {});
+      const [record] = desiredFromContainer(
+        container({
+          "dockroute.enabled": "true",
+          "dockroute.hostname": "a.example.com",
+          "dockroute.target": "10.0.0.1",
+          "dockroute.ttl": rawTtl,
+        }),
+      ).records;
 
-    expect(record?.ttl).toBe(300);
-    expect(warnSpy).toHaveBeenCalledTimes(1);
-    expect(warnSpy).toHaveBeenCalledWith('[labels] /whoami: invalid dockroute.ttl "5m", using 300');
-  });
+      expect(record?.ttl).toBe(300);
+      expect(warnSpy).toHaveBeenCalledTimes(1);
+      expect(warnSpy).toHaveBeenCalledWith(
+        `[labels] /whoami: invalid dockroute.ttl "${rawTtl}", using 300`,
+      );
+    },
+  );
 
   test("skips when no target is resolvable or type is unsupported", () => {
     expect(
@@ -264,5 +269,62 @@ describe("desiredFromContainer", () => {
         ),
       ).toEqual(empty);
     }
+  });
+
+  test("warns once per unknown undotted dockroute key on opted-in containers", () => {
+    warnSpy = spyOn(console, "warn").mockImplementation(() => {});
+    const state = desiredFromContainer(
+      container({
+        "dockroute.enabled": "true",
+        "dockroute.hostname": "a.example.com",
+        "dockroute.target": "10.0.0.1",
+        "dockroute.tll": "60",
+        "dockroute.hostnames": "extra.example.com",
+      }),
+    );
+
+    expect(state.records).toHaveLength(1);
+    expect(state.records[0]).toMatchObject({
+      hostname: "a.example.com",
+      target: "10.0.0.1",
+      ttl: 300,
+    });
+    expect(warnSpy).toHaveBeenCalledTimes(2);
+    expect(warnSpy).toHaveBeenCalledWith(
+      "[labels] /whoami: unknown label dockroute.tll (typo?), ignoring",
+    );
+    expect(warnSpy).toHaveBeenCalledWith(
+      "[labels] /whoami: unknown label dockroute.hostnames (typo?), ignoring",
+    );
+  });
+
+  test("does not warn for known keys or dotted provider hints", () => {
+    warnSpy = spyOn(console, "warn").mockImplementation(() => {});
+    const state = desiredFromContainer(
+      container({
+        "dockroute.enabled": "true",
+        "dockroute.hostname": "a.example.com",
+        "dockroute.target": "10.0.0.1",
+        "dockroute.ttl": "60",
+        "dockroute.cloudflare.proxied": "true",
+      }),
+    );
+
+    expect(state.records[0]?.providerSpecific).toEqual({ "cloudflare.proxied": "true" });
+    expect(state.records[0]?.ttl).toBe(60);
+    expect(warnSpy).not.toHaveBeenCalled();
+  });
+
+  test("never warns about unknown keys when dockroute.enabled is not true", () => {
+    warnSpy = spyOn(console, "warn").mockImplementation(() => {});
+    expect(
+      desiredFromContainer(
+        container({
+          "dockroute.tll": "60",
+          "dockroute.hostname": "a.example.com",
+        }),
+      ),
+    ).toEqual(empty);
+    expect(warnSpy).not.toHaveBeenCalled();
   });
 });
