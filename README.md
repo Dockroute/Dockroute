@@ -157,6 +157,9 @@ DOCKROUTE_DEFAULT_TARGET=192.168.1.10 bun start   # provider=log by default
 
 `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID` and `CLOUDFLARE_TUNNEL_ID` can
 also be read from a file. Set `<name>_FILE` to the desired file path.
+Setting both `<name>` and `<name>_FILE`, or pointing `<name>_FILE` at a
+missing, unreadable or empty file, stops DockRoute at startup with an error
+that names the variable.
 
 ```yaml
 services:

@@ -178,39 +178,43 @@ describe("loadConfig", () => {
         DOCKROUTE_PROVIDER: "cloudflare",
         CLOUDFLARE_API_TOKEN_FILE: createSecretFile("cf_token", "cloudflare-token\n"),
         CLOUDFLARE_ACCOUNT_ID_FILE: createSecretFile("cf_account", "cloudflare-account\n"),
-        CLOUDFLARE_TUNNEL_ID_FILE: createSecretFile("cf_tunnel", "cloudlfare-tunnel"),
+        CLOUDFLARE_TUNNEL_ID_FILE: createSecretFile("cf_tunnel", "cloudflare-tunnel"),
       });
 
       expect(config.cloudflare).toEqual({
         apiToken: "cloudflare-token",
         accountId: "cloudflare-account",
-        tunnelId: "cloudlfare-tunnel",
+        tunnelId: "cloudflare-tunnel",
       });
     });
 
-    test.each(
-      supportedEnvVariables.flatMap((envName) =>
-        ["", " ", "\n"].map((emptyContent) => [envName, emptyContent]),
-      ),
-    )("throw an error when %s and %s_FILE are both set", (envName) => {
+    // The rejection tests below run on the default `log` provider, which needs no
+    // API token, so the only error loadConfig can raise is the one under test.
+    test.each(supportedEnvVariables)("rejects %s alongside its _FILE variant", (envName) => {
       expect(() =>
         loadConfig({
-          DOCKROUTE_PROVIDER: "cloudflare",
           [envName]: "plain-value",
           [`${envName}_FILE`]: createSecretFile(envName, "secret-from-file"),
         }),
-      ).toThrow();
+      ).toThrow(`Cannot use ${envName} and ${envName}_FILE at the same time.`);
     });
 
-    test.each(supportedEnvVariables)("throw an error when %s_FILE is empty", (envName) => {
-      ["", " ", "     ", "\n"].forEach((content) => {
-        expect(() =>
-          loadConfig({
-            DOCKROUTE_PROVIDER: "cloudflare",
-            [`${envName}_FILE`]: createSecretFile(envName, content),
-          }),
-        ).toThrow();
-      });
+    test.each(supportedEnvVariables)("rejects an empty %s_FILE", (envName) => {
+      for (const content of ["", " ", "     ", "\n"]) {
+        const filePath = createSecretFile(envName, content);
+
+        expect(() => loadConfig({ [`${envName}_FILE`]: filePath })).toThrow(
+          `${envName}_FILE (${filePath}) is empty`,
+        );
+      }
+    });
+
+    test("names the variable and the path when a secret file can't be read", () => {
+      const filePath = join(secretsDir, "missing");
+
+      expect(() => loadConfig({ CLOUDFLARE_API_TOKEN_FILE: filePath })).toThrow(
+        `Cannot read CLOUDFLARE_API_TOKEN_FILE at ${filePath}:`,
+      );
     });
   });
 });
