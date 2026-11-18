@@ -175,9 +175,9 @@ services:
 | `DOCKROUTE_DELETE_GRACE_SECONDS` | `60`             | Continuous absence required before a delete runs (`0` = immediate) |
 | `DOCKROUTE_TXT_PREFIX`     | `_dockroute-`          | Registry TXT name prefix                |
 | `DOCKROUTE_DOMAIN_FILTER`  | —                      | Comma-separated zone allowlist          |
-| `CLOUDFLARE_API_TOKEN`     | —                      | Required for `cloudflare`. Scopes: Zone → DNS → Edit; Account → Cloudflare Tunnel → Edit (tunnel only) |
-| `CLOUDFLARE_ACCOUNT_ID`    | —                      | Required for tunnel features            |
-| `CLOUDFLARE_TUNNEL_ID`     | —                      | Required for tunnel features            |
+| `CLOUDFLARE_API_TOKEN`     | —                      | Required for `cloudflare`. Scopes: Zone → DNS → Edit; Account → Cloudflare Tunnel → Edit (tunnel only). Also accepts `CLOUDFLARE_API_TOKEN_FILE` to be used with [Docker secrets](https://docs.docker.com/compose/how-tos/use-secrets/) |
+| `CLOUDFLARE_ACCOUNT_ID`    | —                      | Required for tunnel features. Also accepts `CLOUDFLARE_ACCOUNT_ID_FILE` to be used with [Docker secrets](https://docs.docker.com/compose/how-tos/use-secrets/) |
+| `CLOUDFLARE_TUNNEL_ID`     | —                      | Required for tunnel features. Also accepts `CLOUDFLARE_TUNNEL_ID_FILE` to be used with [Docker secrets](https://docs.docker.com/compose/how-tos/use-secrets/) |
 
 ## Source layout
 

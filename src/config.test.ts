@@ -1,4 +1,7 @@
-import { describe, expect, test } from "bun:test";
+import { afterAll, describe, expect, test } from "bun:test";
+import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { loadConfig } from "./config";
 
 describe("loadConfig", () => {
@@ -140,5 +143,78 @@ describe("loadConfig", () => {
       CLOUDFLARE_TUNNEL_ID: "tun",
     });
     expect(config.cloudflare).toEqual({ apiToken: "token", accountId: "acc", tunnelId: "tun" });
+  });
+
+  describe("docker secrets", () => {
+    const supportedEnvVariables = [
+      "CLOUDFLARE_API_TOKEN",
+      "CLOUDFLARE_ACCOUNT_ID",
+      "CLOUDFLARE_TUNNEL_ID",
+    ];
+    const secretsDir = mkdtempSync(join(tmpdir(), "dockroute-secrets-"));
+    const createSecretFile = (filename: string, content: string): string => {
+      const filePath = join(secretsDir, filename);
+
+      writeFileSync(filePath, content);
+
+      return filePath;
+    };
+
+    afterAll(() => {
+      rmSync(secretsDir, { recursive: true });
+    });
+
+    test("reads API token from CLOUDFLARE_API_TOKEN_FILE without trailing newline", () => {
+      const config = loadConfig({
+        DOCKROUTE_PROVIDER: "cloudflare",
+        CLOUDFLARE_API_TOKEN_FILE: createSecretFile("cf_token", "token-without-newline\n"),
+      });
+
+      expect(config.cloudflare.apiToken).toBe("token-without-newline");
+    });
+
+    test("reads supported _FILE variants", () => {
+      const config = loadConfig({
+        DOCKROUTE_PROVIDER: "cloudflare",
+        CLOUDFLARE_API_TOKEN_FILE: createSecretFile("cf_token", "cloudflare-token\n"),
+        CLOUDFLARE_ACCOUNT_ID_FILE: createSecretFile("cf_account", "cloudflare-account\n"),
+        CLOUDFLARE_TUNNEL_ID_FILE: createSecretFile("cf_tunnel", "cloudflare-tunnel"),
+      });
+
+      expect(config.cloudflare).toEqual({
+        apiToken: "cloudflare-token",
+        accountId: "cloudflare-account",
+        tunnelId: "cloudflare-tunnel",
+      });
+    });
+
+    // The rejection tests below run on the default `log` provider, which needs no
+    // API token, so the only error loadConfig can raise is the one under test.
+    test.each(supportedEnvVariables)("rejects %s alongside its _FILE variant", (envName) => {
+      expect(() =>
+        loadConfig({
+          [envName]: "plain-value",
+          [`${envName}_FILE`]: createSecretFile(envName, "secret-from-file"),
+        }),
+      ).toThrow(`Cannot use ${envName} and ${envName}_FILE at the same time.`);
+    });
+
+    test.each(supportedEnvVariables)("rejects an empty %s_FILE", (envName) => {
+      for (const content of ["", " ", "     ", "\n"]) {
+        const filePath = createSecretFile(envName, content);
+
+        expect(() => loadConfig({ [`${envName}_FILE`]: filePath })).toThrow(
+          `${envName}_FILE (${filePath}) is empty`,
+        );
+      }
+    });
+
+    test("names the variable and the path when a secret file can't be read", () => {
+      const filePath = join(secretsDir, "missing");
+
+      expect(() => loadConfig({ CLOUDFLARE_API_TOKEN_FILE: filePath })).toThrow(
+        `Cannot read CLOUDFLARE_API_TOKEN_FILE at ${filePath}:`,
+      );
+    });
   });
 });
