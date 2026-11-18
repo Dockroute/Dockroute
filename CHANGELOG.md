@@ -1,3 +1,9 @@
+## [0.9.0](https://github.com/Dockroute/Dockroute/compare/v0.8.0...v0.9.0) (2026-11-18)
+
+### Features
+
+* **config:** Added support for secret files in config ([#98](https://github.com/Dockroute/Dockroute/issues/98)) ([e0acb51](https://github.com/Dockroute/Dockroute/commit/e0acb51c0dd8f1e897373c84cf30864eb543fa2a))
+
 ## [0.8.0](https://github.com/Dockroute/Dockroute/compare/v0.7.6...v0.8.0) (2026-11-11)
 
 ### Features

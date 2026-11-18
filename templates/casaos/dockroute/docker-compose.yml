@@ -128,8 +128,8 @@ x-casaos:
   architectures:
     - amd64
     - arm64
-  version: "0.8.0"
-  update_at: "2026-11-11"
+  version: "0.9.0"
+  update_at: "2026-11-18"
   website: "https://www.dockroute.dev"
   repo: "https://github.com/Dockroute/Dockroute"
   support: "https://github.com/Dockroute/Dockroute/issues"

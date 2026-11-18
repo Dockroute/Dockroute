@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { type DockerEndpoint, resolveDockerEndpoint } from "./docker/endpoint";
 import { nonBlank } from "./env";
 
@@ -43,9 +44,9 @@ export function loadConfig(env = process.env): Config {
 
   const provider = nonBlank(env.DOCKROUTE_PROVIDER) ?? "log";
   const cloudflare: CloudflareConfig = {
-    apiToken: nonBlank(env.CLOUDFLARE_API_TOKEN),
-    accountId: nonBlank(env.CLOUDFLARE_ACCOUNT_ID),
-    tunnelId: nonBlank(env.CLOUDFLARE_TUNNEL_ID),
+    apiToken: secretFromFileOrVariable(env, "CLOUDFLARE_API_TOKEN"),
+    accountId: secretFromFileOrVariable(env, "CLOUDFLARE_ACCOUNT_ID"),
+    tunnelId: secretFromFileOrVariable(env, "CLOUDFLARE_TUNNEL_ID"),
   };
   if (provider === "cloudflare" && !cloudflare.apiToken) {
     throw new Error("CLOUDFLARE_API_TOKEN is required when DOCKROUTE_PROVIDER=cloudflare");
@@ -131,4 +132,42 @@ function secondsFromEnv(
     throw new Error(`Invalid ${name} "${raw}". Expected a number of seconds >= ${min}.`);
   }
   return value;
+}
+
+/**
+ * Reads `NAME`, or the file `NAME_FILE` points at (Docker secrets). A blank
+ * variable still means "not set", but a `_FILE` that is set must yield a value:
+ * setting both, or pointing at a missing, unreadable or blank file, fails at
+ * startup instead of silently dropping the secret.
+ */
+function secretFromFileOrVariable(
+  env: typeof process.env,
+  variableName: string,
+): string | undefined {
+  const plainValue = nonBlank(env[variableName]);
+  const filePath = nonBlank(env[`${variableName}_FILE`]);
+
+  if (plainValue && filePath) {
+    throw new Error(`Cannot use ${variableName} and ${variableName}_FILE at the same time.`);
+  }
+
+  if (!filePath) {
+    return plainValue;
+  }
+
+  let content: string;
+  try {
+    content = readFileSync(filePath, "utf8").trim();
+  } catch (error) {
+    const reason = error instanceof Error ? error.message : String(error);
+    throw new Error(`Cannot read ${variableName}_FILE at ${filePath}: ${reason}`, {
+      cause: error,
+    });
+  }
+
+  if (!content) {
+    throw new Error(`${variableName}_FILE (${filePath}) is empty`);
+  }
+
+  return content;
 }
