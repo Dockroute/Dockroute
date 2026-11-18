@@ -106,10 +106,47 @@ describe("loadConfig", () => {
     }
   });
 
-  test("keeps non-blank values exactly as given", () => {
+  test("keeps valid non-blank values unchanged", () => {
     const config = loadConfig({ DOCKROUTE_OWNER_ID: "edge-1", DOCKROUTE_TXT_PREFIX: "_dr-" });
     expect(config.ownerId).toBe("edge-1");
     expect(config.txtPrefix).toBe("_dr-");
+  });
+
+  test("trims surrounding whitespace from the owner id and TXT prefix", () => {
+    const config = loadConfig({ DOCKROUTE_OWNER_ID: " prod ", DOCKROUTE_TXT_PREFIX: " _dr- " });
+    expect(config.ownerId).toBe("prod");
+    expect(config.txtPrefix).toBe("_dr-");
+  });
+
+  test("keeps owner ids that already round-trip unchanged", () => {
+    for (const ownerId of ["home-lab", "edge-1", "a=b", "my host", "Home-Lab"]) {
+      const config = loadConfig({ DOCKROUTE_OWNER_ID: ownerId });
+      expect(config.ownerId).toBe(ownerId);
+    }
+  });
+
+  test("rejects an owner id containing a comma", () => {
+    expect(() => loadConfig({ DOCKROUTE_OWNER_ID: "a,b" })).toThrow(
+      'Invalid DOCKROUTE_OWNER_ID "a,b". It must not contain a comma (",").',
+    );
+  });
+
+  test("rejects a TXT prefix that is not one lower-case label fragment", () => {
+    for (const prefix of ["_dr.", "_DR-", "dock route", "_dr/"]) {
+      expect(() => loadConfig({ DOCKROUTE_TXT_PREFIX: prefix })).toThrow(
+        `Invalid DOCKROUTE_TXT_PREFIX "${prefix}". Allowed characters: a-z, 0-9, "_" and "-"`,
+      );
+    }
+  });
+
+  test("rejects a TXT prefix too long to share one DNS label with the record type", () => {
+    const longest = "a".repeat(58); // + "cname" = 63, the DNS label limit
+    expect(loadConfig({ DOCKROUTE_TXT_PREFIX: longest }).txtPrefix).toBe(longest);
+
+    const tooLong = `${longest}a`;
+    expect(() => loadConfig({ DOCKROUTE_TXT_PREFIX: tooLong })).toThrow(
+      `Invalid DOCKROUTE_TXT_PREFIX "${tooLong}". It must be at most 58 characters`,
+    );
   });
 
   test("a blank API token does not satisfy the cloudflare provider", () => {

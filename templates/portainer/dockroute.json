@@ -27,7 +27,7 @@
         {
           "name": "DOCKROUTE_OWNER_ID",
           "label": "Owner ID",
-          "description": "Ownership id written to companion TXT records; lets several instances share a zone safely.",
+          "description": "Ownership id written to companion TXT records; lets several instances share a zone safely. Must not contain a comma.",
           "default": "default"
         },
         {

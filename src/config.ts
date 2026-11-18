@@ -7,6 +7,8 @@ export type Policy = (typeof POLICIES)[number];
 
 const DEFAULT_RESYNC_SECONDS = 60;
 const DEFAULT_DELETE_GRACE_SECONDS = 60;
+/** The prefix and the longest record type ("cname") share one 63-character DNS label. */
+const MAX_TXT_PREFIX_LENGTH = 63 - "cname".length;
 
 export interface CloudflareConfig {
   apiToken?: string;
@@ -60,7 +62,7 @@ export function loadConfig(env = process.env): Config {
       DEFAULT_RESYNC_SECONDS,
       1,
     ),
-    ownerId: nonBlank(env.DOCKROUTE_OWNER_ID) ?? "default",
+    ownerId: ownerIdFromEnv(env.DOCKROUTE_OWNER_ID),
     policy: policy as Policy,
     deleteGraceSeconds: secondsFromEnv(
       "DOCKROUTE_DELETE_GRACE_SECONDS",
@@ -68,13 +70,50 @@ export function loadConfig(env = process.env): Config {
       DEFAULT_DELETE_GRACE_SECONDS,
       0,
     ),
-    txtPrefix: nonBlank(env.DOCKROUTE_TXT_PREFIX) ?? "_dockroute-",
+    txtPrefix: txtPrefixFromEnv(env.DOCKROUTE_TXT_PREFIX),
     domainFilter: (env.DOCKROUTE_DOMAIN_FILTER ?? "")
       .split(",")
       .map((d) => d.trim())
       .filter(Boolean),
     cloudflare,
   };
+}
+
+/**
+ * The owner id is written into every ownership TXT and must parse back
+ * unchanged, or DockRoute treats its own records as foreign. Surrounding
+ * whitespace is trimmed (the parser trims it anyway); a comma splits the TXT
+ * payload, so it is rejected. Nothing else is rewritten: the owner id is an
+ * identity, and changing it would orphan existing records.
+ */
+function ownerIdFromEnv(raw: string | undefined): string {
+  const ownerId = nonBlank(raw)?.trim() ?? "default";
+  if (ownerId.includes(",")) {
+    throw new Error(`Invalid DOCKROUTE_OWNER_ID "${ownerId}". It must not contain a comma (",").`);
+  }
+  return ownerId;
+}
+
+/**
+ * The TXT prefix becomes the start of the first DNS label of every ownership
+ * TXT name, and providers return names in lower case. Anything other than one
+ * lower-case label fragment cannot be parsed back. A prefix too long to fit in
+ * that label next to the record type makes the TXT create fail after its data
+ * record was written, leaving that record without ownership.
+ */
+function txtPrefixFromEnv(raw: string | undefined): string {
+  const prefix = nonBlank(raw)?.trim() ?? "_dockroute-";
+  if (!/^[a-z0-9_-]+$/.test(prefix)) {
+    throw new Error(
+      `Invalid DOCKROUTE_TXT_PREFIX "${prefix}". Allowed characters: a-z, 0-9, "_" and "-" (lower case, no dots).`,
+    );
+  }
+  if (prefix.length > MAX_TXT_PREFIX_LENGTH) {
+    throw new Error(
+      `Invalid DOCKROUTE_TXT_PREFIX "${prefix}". It must be at most ${MAX_TXT_PREFIX_LENGTH} characters, so it fits in one DNS label with the record type.`,
+    );
+  }
+  return prefix;
 }
 
 /**

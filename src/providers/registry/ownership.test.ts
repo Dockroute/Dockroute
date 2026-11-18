@@ -57,3 +57,19 @@ describe("txt naming", () => {
     expect(parseTxtName(`${PREFIX}a`, PREFIX)).toBeUndefined();
   });
 });
+
+describe("round-trip with accepted config values", () => {
+  test("owner ids accepted by loadConfig parse back unchanged", () => {
+    for (const owner of ["default", "home-lab", "edge-1", "a=b", "my host"]) {
+      const content = formatOwnershipContent({ owner, resource: "container/whoami" });
+      expect(parseOwnershipContent(content)).toEqual({ owner, resource: "container/whoami" });
+    }
+  });
+
+  test("TXT prefixes accepted by loadConfig parse back from a lower-cased name", () => {
+    for (const prefix of ["_dockroute-", "_dr-", "dr_1-"]) {
+      const name = txtNameFor("whoami.example.com", "CNAME", prefix).toLowerCase();
+      expect(parseTxtName(name, prefix)).toEqual({ hostname: "whoami.example.com", type: "CNAME" });
+    }
+  });
+});
