@@ -103,7 +103,7 @@ describe("loadConfig", () => {
     }
   });
 
-  test("keeps non-blank values exactly as given", () => {
+  test("keeps valid non-blank values unchanged", () => {
     const config = loadConfig({ DOCKROUTE_OWNER_ID: "edge-1", DOCKROUTE_TXT_PREFIX: "_dr-" });
     expect(config.ownerId).toBe("edge-1");
     expect(config.txtPrefix).toBe("_dr-");
@@ -134,6 +134,16 @@ describe("loadConfig", () => {
         `Invalid DOCKROUTE_TXT_PREFIX "${prefix}". Allowed characters: a-z, 0-9, "_" and "-"`,
       );
     }
+  });
+
+  test("rejects a TXT prefix too long to share one DNS label with the record type", () => {
+    const longest = "a".repeat(58); // + "cname" = 63, the DNS label limit
+    expect(loadConfig({ DOCKROUTE_TXT_PREFIX: longest }).txtPrefix).toBe(longest);
+
+    const tooLong = `${longest}a`;
+    expect(() => loadConfig({ DOCKROUTE_TXT_PREFIX: tooLong })).toThrow(
+      `Invalid DOCKROUTE_TXT_PREFIX "${tooLong}". It must be at most 58 characters`,
+    );
   });
 
   test("a blank API token does not satisfy the cloudflare provider", () => {

@@ -173,7 +173,7 @@ services:
 | `DOCKROUTE_OWNER_ID`       | `default`              | Ownership id written into registry TXTs. Trimmed; must not contain `,` (it splits the TXT payload) |
 | `DOCKROUTE_POLICY`         | `sync`                 | `sync`, `upsert-only` or `create-only`  |
 | `DOCKROUTE_DELETE_GRACE_SECONDS` | `60`             | Continuous absence required before a delete runs (`0` = immediate) |
-| `DOCKROUTE_TXT_PREFIX`     | `_dockroute-`          | Registry TXT name prefix. Lower-case `a-z`, `0-9`, `_`, `-` only: it must stay inside the first DNS label |
+| `DOCKROUTE_TXT_PREFIX`     | `_dockroute-`          | Registry TXT name prefix. Lower-case `a-z`, `0-9`, `_`, `-` only, at most 58 characters: it must fit inside the first DNS label (63 max) together with the record type |
 | `DOCKROUTE_DOMAIN_FILTER`  | —                      | Comma-separated zone allowlist          |
 | `CLOUDFLARE_API_TOKEN`     | —                      | Required for `cloudflare`. Scopes: Zone → DNS → Edit; Account → Cloudflare Tunnel → Edit (tunnel only) |
 | `CLOUDFLARE_ACCOUNT_ID`    | —                      | Required for tunnel features            |
