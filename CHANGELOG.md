@@ -1,3 +1,9 @@
+## [0.9.1](https://github.com/Dockroute/Dockroute/compare/v0.9.0...v0.9.1) (2026-11-18)
+
+### Bug Fixes
+
+* **config:** reject an owner id or TXT prefix that can't round-trip ([#99](https://github.com/Dockroute/Dockroute/issues/99)) ([1afe8d5](https://github.com/Dockroute/Dockroute/commit/1afe8d572eb657f990d3b5c437a6bb7026d34d6e)), closes [#84](https://github.com/Dockroute/Dockroute/issues/84) [#98](https://github.com/Dockroute/Dockroute/issues/98)
+
 ## [0.9.0](https://github.com/Dockroute/Dockroute/compare/v0.8.0...v0.9.0) (2026-11-18)
 
 ### Features
