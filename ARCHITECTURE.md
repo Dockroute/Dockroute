@@ -65,6 +65,10 @@ by the provider-agnostic planner (`src/providers/registry/planner.ts`):
   the `sync` policy and only when ownership is proven.
 - Dangling ownership TXT (data record manually deleted): recreate the record
   if still desired, clean up the TXT under `sync` if not.
+- An ownership TXT is deleted only after its data record is gone
+  (`src/providers/registry/deletes.ts`): providers delete data records first
+  and skip the companion TXT when that delete failed, so both are retried on
+  the next reconcile instead of leaking a record without its proof.
 
 ## Sync policies
 
@@ -200,6 +204,7 @@ src/
       ownership.ts      TXT ownership format + naming (provider-agnostic)
       planner.ts        pure reconciliation planner: policies, conflicts, orphans
       grace.ts          delete hysteresis: orphans must stay gone before removal
+      deletes.ts        delete ordering: a TXT goes only after its data record
     cloudflare/
       api.ts            Cloudflare v4 wire client (wire types stay here — ACL)
       cloudflare.ts     provider: zones, planner execution, TTL normalization
