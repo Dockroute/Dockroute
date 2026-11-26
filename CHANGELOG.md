@@ -1,3 +1,9 @@
+## [0.9.2](https://github.com/Dockroute/Dockroute/compare/v0.9.1...v0.9.2) (2026-11-26)
+
+### Bug Fixes
+
+* **registry:** never delete an ownership TXT whose data record delete failed ([#101](https://github.com/Dockroute/Dockroute/issues/101)) ([7b4bf5a](https://github.com/Dockroute/Dockroute/commit/7b4bf5ac56ee085eae51b1508ec60c820bfb3250)), closes [#87](https://github.com/Dockroute/Dockroute/issues/87)
+
 ## [0.9.1](https://github.com/Dockroute/Dockroute/compare/v0.9.0...v0.9.1) (2026-11-18)
 
 ### Bug Fixes
