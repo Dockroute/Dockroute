@@ -22,6 +22,8 @@ class FakeCloudflareApi implements CloudflareApi {
   records = new Map<string, CfDnsRecord[]>([["z1", []]]);
   tunnelConfig: CfTunnelConfig | null = null;
   tunnelPuts: CfTunnelConfig[] = [];
+  /** Opt-in failure hook: deletes of records with these "TYPE name" keys throw. */
+  failingDeletes = new Set<string>();
   private nextId = 1;
 
   seed(zoneId: string, record: Omit<CfDnsRecord, "id">): CfDnsRecord {
@@ -51,6 +53,10 @@ class FakeCloudflareApi implements CloudflareApi {
 
   async deleteDnsRecord(zoneId: string, recordId: string): Promise<void> {
     const list = this.records.get(zoneId) ?? [];
+    const target = list.find((r) => r.id === recordId);
+    if (target && this.failingDeletes.has(`${target.type} ${target.name}`)) {
+      throw new Error(`simulated 503 deleting ${target.type} ${target.name}`);
+    }
     this.records.set(
       zoneId,
       list.filter((r) => r.id !== recordId),
@@ -211,6 +217,53 @@ describe("CloudflareProvider — DNS", () => {
   test("sync deletes owned orphans together with their TXT", async () => {
     const api = new FakeCloudflareApi();
     seedOwned(api, "gone.example.com");
+    const provider = new CloudflareProvider(api, makeConfig());
+
+    await provider.sync(desired());
+
+    expect(api.records.get("z1")).toEqual([]);
+  });
+
+  test("a failed data delete keeps its ownership TXT, and the next sync removes both", async () => {
+    const api = new FakeCloudflareApi();
+    seedOwned(api, "gone.example.com");
+    api.failingDeletes.add("A gone.example.com");
+    const provider = new CloudflareProvider(api, makeConfig());
+
+    await provider.sync(desired());
+
+    expect(api.find("z1", "A", "gone.example.com")).toBeDefined();
+    expect(api.find("z1", "TXT", "_dockroute-a.gone.example.com")).toBeDefined();
+
+    api.failingDeletes.clear();
+    await provider.sync(desired());
+
+    expect(api.records.get("z1")).toEqual([]);
+  });
+
+  test("a failed data delete does not hold back other orphans' TXT deletes", async () => {
+    const api = new FakeCloudflareApi();
+    seedOwned(api, "stuck.example.com");
+    seedOwned(api, "gone.example.com");
+    api.failingDeletes.add("A stuck.example.com");
+    const provider = new CloudflareProvider(api, makeConfig());
+
+    await provider.sync(desired());
+
+    expect(api.records.get("z1")?.map((r) => `${r.type} ${r.name}`)).toEqual([
+      "A stuck.example.com",
+      "TXT _dockroute-a.stuck.example.com",
+    ]);
+  });
+
+  test("sync cleans up a dangling owned TXT whose data record is already gone", async () => {
+    const api = new FakeCloudflareApi();
+    api.seed("z1", {
+      type: "TXT",
+      name: "_dockroute-a.dangling.example.com",
+      content: OWNED_TXT,
+      ttl: 300,
+    });
     const provider = new CloudflareProvider(api, makeConfig());
 
     await provider.sync(desired());
@@ -394,6 +447,30 @@ describe("CloudflareProvider — delete grace", () => {
     expect(api.records.get("z1")).toHaveLength(2);
 
     clock.advance(61);
+    await provider.sync(desired());
+
+    expect(api.records.get("z1")).toEqual([]);
+  });
+
+  test("a delete that fails after the window is retried next sync without a new window", async () => {
+    const clock = fakeClock();
+    const api = new FakeCloudflareApi();
+    seedOwned(api, "gone.example.com");
+    const provider = new CloudflareProvider(
+      api,
+      makeConfig(graceEnv),
+      new DeleteGrace(60, "_dockroute-", clock.now),
+    );
+
+    await provider.sync(desired());
+    clock.advance(61);
+    api.failingDeletes.add("A gone.example.com");
+    await provider.sync(desired());
+
+    expect(api.records.get("z1")).toHaveLength(2);
+
+    api.failingDeletes.clear();
+    clock.advance(1);
     await provider.sync(desired());
 
     expect(api.records.get("z1")).toEqual([]);

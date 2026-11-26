@@ -2,6 +2,7 @@ import type { Config } from "../../config";
 import type { Provider } from "../../core/ports";
 import type { DesiredState, DnsRecord, TunnelRoute } from "../../core/types";
 import { registerProvider } from "../provider";
+import { txtDeletesSafeToRun } from "../registry/deletes";
 import { DeleteGrace } from "../registry/grace";
 import { parseOwnershipContent, parseTxtName } from "../registry/ownership";
 import { type Plan, planChanges, type RegistryRecord } from "../registry/planner";
@@ -152,7 +153,23 @@ export class CloudflareProvider implements Provider {
         this.api.updateDnsRecord(zone.id, id, toWire(record)),
       );
     }
+    // Data records go first; an ownership TXT is deleted only once its data
+    // record is gone, so a failed delete keeps its proof and is retried.
+    const failedDataDeletes: RegistryRecord[] = [];
     for (const record of plan.deletes) {
+      if (record.type === "TXT") continue;
+      const id = idFor(record);
+      if (!id) continue;
+      const deleted = await this.apiCall(`delete ${record.type} ${record.hostname}`, () =>
+        this.api.deleteDnsRecord(zone.id, id),
+      );
+      if (!deleted) failedDataDeletes.push(record);
+    }
+    for (const record of txtDeletesSafeToRun(
+      plan.deletes,
+      failedDataDeletes,
+      this.config.txtPrefix,
+    )) {
       const id = idFor(record);
       if (!id) continue;
       await this.apiCall(`delete ${record.type} ${record.hostname}`, () =>
@@ -194,12 +211,15 @@ export class CloudflareProvider implements Provider {
     }
   }
 
-  private async apiCall(what: string, call: () => Promise<void>): Promise<void> {
+  /** Runs one API call, logging the outcome; returns whether it succeeded. */
+  private async apiCall(what: string, call: () => Promise<void>): Promise<boolean> {
     try {
       await call();
       console.log(`[cloudflare] ${what}`);
+      return true;
     } catch (err) {
       console.error(`[cloudflare] ${what} failed:`, err);
+      return false;
     }
   }
 }
