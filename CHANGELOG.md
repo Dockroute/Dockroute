@@ -1,3 +1,9 @@
+## [0.9.3](https://github.com/Dockroute/Dockroute/compare/v0.9.2...v0.9.3) (2026-11-26)
+
+### Bug Fixes
+
+* **deps:** bump oven/bun from 1.4.4-alpine to 1.4.5-alpine ([#103](https://github.com/Dockroute/Dockroute/issues/103)) ([b0d3d2a](https://github.com/Dockroute/Dockroute/commit/b0d3d2a202f62a1d8c06b5db7153d247350864fd))
+
 ## [0.9.2](https://github.com/Dockroute/Dockroute/compare/v0.9.1...v0.9.2) (2026-11-26)
 
 ### Bug Fixes
